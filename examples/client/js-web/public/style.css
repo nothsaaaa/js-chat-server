@@ -1,0 +1,57 @@
+body {
+  background-color: #121212;
+  color: #ddd;
+  font-family: Arial, sans-serif;
+  margin: 20px;
+}
+
+h1 {
+  color: #fff;
+}
+
+#messages {
+  border: 1px solid #444;
+  height: 300px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  padding: 5px;
+  background-color: #1e1e1e;
+  border-radius: 5px;
+}
+
+#messages p {
+  margin: 5px 0;
+}
+
+.system {
+  color: #888;
+  font-style: italic;
+}
+
+input, button {
+  background-color: #222;
+  border: 1px solid #555;
+  color: #ddd;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+input::placeholder {
+  color: #666;
+}
+
+button:hover {
+  background-color: #333;
+  cursor: pointer;
+}
+
+#chat input[type="text"] {
+  width: 80%;
+  margin-right: 10px;
+}
+
+p.username {
+  font-weight: bold;
+  margin: 0 5px 0 0;
+  user-select: none;
+}

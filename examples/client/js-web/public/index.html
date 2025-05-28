@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebSocket Chat Example Client</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>WebSocket Chat (Example Client)</h1>
+
+  <label>
+    Username (optional):
+    <input type="text" id="usernameInput" placeholder="Leave blank for anonymous" />
+  </label>
+  <button id="connectBtn">Connect</button>
+
+  <div id="chat" style="display:none;">
+    <div id="messages"></div>
+
+    <input type="text" id="messageInput" placeholder="Type message or /nick newname" />
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <script src="client.js"></script>
+</body>
+</html>
