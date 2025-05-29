@@ -1,6 +1,4 @@
-const settings = require('../settings.json');
-
-module.exports = (wss, data) => {
+module.exports = (wss, data, settings) => {
   wss.clients.forEach((client) => {
     if (
       client.readyState === 1 &&
