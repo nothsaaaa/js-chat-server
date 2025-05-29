@@ -1,0 +1,13 @@
+{
+  "authentication": true,
+
+
+
+  "maxMessagesPerSecond": 3,    
+  "connectionWindowMs": 30000,  
+  "maxConnectionsPerWindow": 2,   
+  "maxConnectionsPerIP": 4,      
+  "totalMaxConnections": 20,   
+  "messageRateLimit": 3,       
+  "motd": "Welcome to the Multiplexer Chat Network!"
+}
