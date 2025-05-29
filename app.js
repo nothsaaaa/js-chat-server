@@ -14,7 +14,6 @@ if (!fs.existsSync(settingsPath)) {
   console.log('Settings file created with authentication DEFAULTED TO OFF');
 }
 
-// Generate admins.json with default admin if not exists
 const adminsPath = path.join(__dirname, 'admins.json');
 if (!fs.existsSync(adminsPath)) {
   const defaultAdmin = "admin";
@@ -22,7 +21,7 @@ if (!fs.existsSync(adminsPath)) {
   console.log(`Default admin is being created with username: "${defaultAdmin}"`);
   console.warn(`CHANGE THIS CHANGE THIS CHANGE THIS!`)
   console.warn(`ANYONE WITH THE USERNAME "ADMIN" HAS FULL CONTROL OF MODERATION COMMANDS!`)
-  
+
 }
 
 const server = http.createServer();
