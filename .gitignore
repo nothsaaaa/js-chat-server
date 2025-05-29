@@ -3,3 +3,4 @@ chat.db
 accounts.db
 admins.json
 settings.json
+banned.json

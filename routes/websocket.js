@@ -20,7 +20,9 @@ const adminUsers = fs.existsSync(adminsPath)
   ? JSON.parse(fs.readFileSync(adminsPath))
   : [];
 
-// Define illegal username check with max length 20
+const MAX_MESSAGE_LENGTH = 2000;
+const MAX_MESSAGE_SIZE = 5120; // 5 KB
+
 const isIllegalUsername = (username) => {
   return !/^[A-Za-z0-9_-]{3,20}$/.test(username);
 };
@@ -36,21 +38,92 @@ const broadcast = (wss, data) => {
   });
 };
 
+// Track connections per IP
+const ipConnectionTimestamps = new Map();
+
 module.exports = (socket, req, wss) => {
+  const ip = req.socket.remoteAddress;
+
+  // Enforce total max connections
+  const totalMaxConnections = settings.totalMaxConnections || 100;
+  if (wss.clients.size >= totalMaxConnections) {
+    socket.send(JSON.stringify({
+      type: 'system',
+      text: 'Server is full. Please try again later.',
+    }));
+    socket.close();
+    return;
+  }
+
+  // Enforce per-IP connection rate limit
+  const now = Date.now();
+  const windowSize = settings.connectionRateLimitWindow || 30000; // 30 sec
+  const maxPerIP = settings.connectionLimitPerIP || 2;
+
+  if (!ipConnectionTimestamps.has(ip)) {
+    ipConnectionTimestamps.set(ip, []);
+  }
+
+  const timestamps = ipConnectionTimestamps.get(ip).filter(ts => now - ts < windowSize);
+  timestamps.push(now);
+  ipConnectionTimestamps.set(ip, timestamps);
+
+  if (timestamps.length > maxPerIP) {
+    socket.send(JSON.stringify({
+      type: 'system',
+      text: `Too many connections from this IP. Limit is ${maxPerIP} every ${windowSize / 1000} seconds.`,
+    }));
+    socket.close();
+    return;
+  }
+
   const query = url.parse(req.url, true).query;
 
   if (!wss.usernames) wss.usernames = new Set();
   if (!wss.authenticatedClients) wss.authenticatedClients = new Set();
 
-  // Load banned users once on connection
   const bannedPath = path.join(__dirname, '../banned.json');
   let bannedUsers = [];
   if (fs.existsSync(bannedPath)) {
     bannedUsers = JSON.parse(fs.readFileSync(bannedPath));
   }
 
+  const messageTimestamps = [];
+
   const handleMessage = (msg) => {
+    const now = Date.now();
+    const rateLimit = settings.messageRateLimit || 5;
+    messageTimestamps.push(now);
+    while (messageTimestamps.length && now - messageTimestamps[0] > 1000) {
+      messageTimestamps.shift();
+    }
+
+    if (messageTimestamps.length > rateLimit) {
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: `You are sending messages too fast. Limit is ${rateLimit} per second.`,
+      }));
+      return;
+    }
+
     msg = msg.toString().trim();
+
+    if (msg.length > MAX_MESSAGE_LENGTH) {
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: `Your message is too long. Maximum length is ${MAX_MESSAGE_LENGTH} characters.`,
+      }));
+      return;
+    }
+
+    if (Buffer.byteLength(msg, 'utf-8') > MAX_MESSAGE_SIZE) {
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: `Your message is too large. Maximum size is ${MAX_MESSAGE_SIZE / 1024}KB.`,
+      }));
+      return;
+    }
+
     if (handleCommand(msg, socket, wss, broadcast, settings, adminUsers)) return;
 
     const messageObj = {
@@ -82,7 +155,6 @@ module.exports = (socket, req, wss) => {
       const command = parts[0];
       const rawUsername = parts[1];
       const password = parts.slice(2).join(' ');
-      const ip = req.socket.remoteAddress;
 
       if (!rawUsername || !password) {
         socket.send(JSON.stringify({
@@ -110,7 +182,6 @@ module.exports = (socket, req, wss) => {
         return;
       }
 
-      // Reject banned users before allowing login
       if (bannedUsers.includes(username)) {
         socket.send(JSON.stringify({
           type: 'system',
@@ -185,7 +256,6 @@ module.exports = (socket, req, wss) => {
       return;
     }
 
-    // Reject banned users before allowing connection
     if (bannedUsers.includes(desiredUsername)) {
       socket.send(JSON.stringify({
         type: 'system',
