@@ -225,11 +225,20 @@ proxyServer.on('connection', (clientSocket, req) => {
       }
       return;
     }
+    if (message === '/servers') {
+      const serverList = Object.keys(ROOM_SERVERS);
+      clientSocket.send(JSON.stringify({
+        type: 'system',
+        text: `Available rooms: ${serverList.length > 0 ? serverList.join(', ') : 'No rooms available.'}`,
+      }));
+      console.log(`[${new Date().toISOString()}] COMMAND: User "${username || 'unknown'}" from IP ${ip} requested server list`);
+      return;
+    }
 
     if (!roomSocket || roomSocket.readyState !== WebSocket.OPEN) {
       clientSocket.send(JSON.stringify({
         type: 'system',
-        text: 'You must join a room first using /join <room>.',
+        text: 'You must join a room first using /join <room>. Use /servers to find rooms.',
       }));
       return;
     }
