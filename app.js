@@ -8,12 +8,12 @@ const settingsPath = path.join(__dirname, 'settings.json');
 
 const defaultSettings = {
   authentication: false, //enable auth system
-  nickChangeCooldown: 0, //how fast can users change nick
-  maxMessagesPerSecond: 99999, //maximum messages a user can send per second
-  connectionWindowMs: 0,
-  maxConnectionsPerWindow: 99999, //max connections within {connectionWindowMS} (eg 30 seconds)
-  maxTotalConnections: 99999, //maximum connections per ip
-  totalMaxConnections: 99999, //maximum users online
+  nickChangeCooldown: 30000, //how fast can users change nick
+  maxMessagesPerSecond: 3, //maximum messages a user can send per second
+  connectionWindowMs: 30000,
+  maxConnectionsPerWindow: 2, //max connections within {connectionWindowMS} (eg 30 seconds)
+  maxTotalConnections: 4, //maximum connections per ip
+  totalMaxConnections: 20, //maximum users online
   port: 3000
 };
 
