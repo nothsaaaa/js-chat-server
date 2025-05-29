@@ -5,7 +5,7 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
 
   return (msg) => {
     const now = Date.now();
-    const rateLimit = settings.messageRateLimit || 5;
+    const rateLimit = settings.maxMessagesPerSecond || 5;
     messageTimestamps.push(now);
     while (messageTimestamps.length && now - messageTimestamps[0] > 1000) {
       messageTimestamps.shift();

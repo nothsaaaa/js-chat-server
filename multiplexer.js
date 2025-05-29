@@ -73,7 +73,7 @@ function createRouter(backends) {
           const json = JSON.parse(text);
           client.send(JSON.stringify(json));
         } catch (err) {
-          client.send(JSON.stringify({ type: "system", text: "§cReceived invalid binary message from backend." }));
+          client.send(JSON.stringify({ type: "system", text: "Received invalid binary message from backend." }));
         }
       } else {
         client.send(data.toString());
@@ -114,21 +114,36 @@ wss.on("connection", (ws) => {
     const str = msg.toString();
 
     if (str.startsWith("/")) {
-      handleCommand(str, ws, { backends, switchServer });
+      // Try to handle proxy commands:
+      const handled = handleCommand(str, ws, { backends, switchServer });
+      if (!handled) {
+        // Not a proxy command, forward to backend if connected
+        const backend = getBackend(ws);
+        if (backend && backend.readyState === WebSocket.OPEN) {
+          backend.send(msg);
+        } else {
+          ws.send(JSON.stringify({
+            type: "system",
+            text: "§cYou are not connected to a server. Type /servers or /join <room>."
+          }));
+        }
+      }
       return;
     }
 
+    // Normal message (not command), forward only if connected
     const backend = getBackend(ws);
     if (!backend || backend.readyState !== WebSocket.OPEN) {
       ws.send(JSON.stringify({
         type: "system",
-        text: "You are not connected to a server. Type /servers or /join <room>."
+        text: "§cYou are not connected to a server. Type /servers or /join <room>."
       }));
       return;
     }
 
     backend.send(msg);
   });
+
 
   ws.on("close", () => {
     const backend = getBackend(ws);
