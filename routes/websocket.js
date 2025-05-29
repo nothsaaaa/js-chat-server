@@ -3,6 +3,7 @@ const { clampUsername } = require('../utils/colorUtils');
 const generateUsername = require('../utils/generateUsername');
 const connectionLogger = require('../middleware/connectionLogger');
 const { saveMessage, getRecentMessages } = require('../utils/db');
+const handleCommand = require('../utils/commands');
 
 const broadcast = (wss, data) => {
   wss.clients.forEach((client) => {
@@ -14,23 +15,31 @@ const broadcast = (wss, data) => {
 
 module.exports = (socket, req, wss) => {
   const query = url.parse(req.url, true).query;
-  const username = clampUsername(query.username || generateUsername());
+  const desiredUsername = clampUsername(query.username || generateUsername());
 
-  socket.username = username;
-  connectionLogger('JOIN', username);
-
-  // Initialize the usernames set if not already present
   if (!wss.usernames) {
     wss.usernames = new Set();
   }
-  wss.usernames.add(username);
 
-  // Send recent messages history to the new client
+  // Reject duplicate usernames
+  if (wss.usernames.has(desiredUsername)) {
+    socket.send(JSON.stringify({
+      type: 'system',
+      text: `Username "${desiredUsername}" is already taken. Connection rejected.`,
+    }));
+    socket.close();
+    return;
+  }
+
+  socket.username = desiredUsername;
+  wss.usernames.add(socket.username);
+  connectionLogger('JOIN', socket.username);
+
   getRecentMessages()
     .then((messages) => {
       socket.send(JSON.stringify({ type: 'history', messages }));
 
-      const joinText = `${username} has joined.`;
+      const joinText = `${socket.username} has joined.`;
       broadcast(wss, { type: 'system', text: joinText });
       saveMessage({ type: 'system', text: joinText });
     })
@@ -42,26 +51,9 @@ module.exports = (socket, req, wss) => {
   socket.on('message', (msg) => {
     msg = msg.toString().trim();
 
-    if (msg.startsWith('/nick')) {
-      const newName = clampUsername(msg.slice(5).trim());
-      const oldName = socket.username;
-      socket.username = newName;
-
-      // Update the username set
-      wss.usernames.delete(oldName);
-      wss.usernames.add(newName);
-
-      const nickChangeText = `${oldName} is now ${newName}`;
-      broadcast(wss, { type: 'system', text: nickChangeText });
-      saveMessage({ type: 'system', text: nickChangeText });
-      return;
-    }
-
-    if (msg === '/list') {
-      const onlineUsers = Array.from(wss.usernames);
-      socket.send(JSON.stringify({ type: 'system', text: `Online users: ${onlineUsers.join(', ')}` }));
-      return;
-    }
+    // Delegate command handling
+    const wasCommand = handleCommand(msg, socket, wss, broadcast);
+    if (wasCommand) return;
 
     // Regular chat message
     const messageObj = {
@@ -77,8 +69,6 @@ module.exports = (socket, req, wss) => {
 
   socket.on('close', () => {
     connectionLogger('LEAVE', socket.username);
-
-    // Remove user from the usernames set
     wss.usernames.delete(socket.username);
 
     const leaveText = `${socket.username} has left.`;

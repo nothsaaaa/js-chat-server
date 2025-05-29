@@ -102,21 +102,10 @@ All server messages are JSON strings with this general shape:
 ---
 
 ## Commands
-Commands are registered in routes/websocket.js.
+Commands are registered in utils/commands.js
 
-* **Change Nickname**
-
-  Clients send a message starting with `/nick` followed by the new username:
-
-  ```
-  /nick NewName
-  ```
-
-  The server updates the username and broadcasts a system message:
-
-  ```
-  OldName is now NewName
-  ```
+* /nick
+* /list
 
 ---
 
