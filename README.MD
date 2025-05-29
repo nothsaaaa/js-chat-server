@@ -1,5 +1,6 @@
 # js-chat-server
 lightweight chatserver written in javascript
+## DOCUMENTATION GOES QUICKLY OUT OF DATE
 
 ---
 
