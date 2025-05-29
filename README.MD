@@ -102,6 +102,7 @@ All server messages are JSON strings with this general shape:
 ---
 
 ## Commands
+Commands are registered in routes/websocket.js.
 
 * **Change Nickname**
 
