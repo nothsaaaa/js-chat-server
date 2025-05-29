@@ -14,7 +14,8 @@ const defaultSettings = {
   maxConnectionsPerWindow: 2, //max connections within {connectionWindowMS} (eg 30 seconds)
   maxTotalConnections: 4, //maximum connections per ip
   totalMaxConnections: 20, //maximum users online
-  port: 3000
+  port: 3000,
+  motd: "Welcome to the chat! Be respectful and have fun.",
 };
 
 if (!fs.existsSync(settingsPath)) {

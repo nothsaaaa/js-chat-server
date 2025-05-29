@@ -228,9 +228,14 @@ module.exports = (socket, req, wss) => {
           const messages = await getRecentMessages();
           socket.send(JSON.stringify({ type: 'history', messages }));
 
+          if (settings.motd) {
+            socket.send(JSON.stringify({ type: 'system', text: `MOTD: ${settings.motd}` }));
+          }
+
           const joinText = `${username} has joined.`;
           broadcast(wss, { type: 'system', text: joinText });
           saveMessage({ type: 'system', text: joinText });
+
         } else {
           loginLimiter.recordFailedAttempt(ip, username);
           socket.send(JSON.stringify({ type: 'system', text: 'Login failed. Please try again.' }));
@@ -282,10 +287,15 @@ module.exports = (socket, req, wss) => {
       .then((messages) => {
         socket.send(JSON.stringify({ type: 'history', messages }));
 
+        if (settings.motd) {
+          socket.send(JSON.stringify({ type: 'system', text: `MOTD: ${settings.motd}` }));
+        }
+
         const joinText = `${desiredUsername} has joined.`;
         broadcast(wss, { type: 'system', text: joinText });
         saveMessage({ type: 'system', text: joinText });
       })
+
       .catch((err) => {
         console.error('Failed to load message history:', err);
         socket.send(JSON.stringify({ type: 'system', text: 'Failed to load chat history.' }));
