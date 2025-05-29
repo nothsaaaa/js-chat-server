@@ -7,12 +7,13 @@ const path = require('path');
 const settingsPath = path.join(__dirname, 'settings.json');
 
 const defaultSettings = {
-  authentication: false,
-  nickChangeCooldown: 30000,
-  maxMessagesPerSecond: 3,
+  authentication: false, //enable auth system
+  nickChangeCooldown: 30000, //how fast can users change nick
+  maxMessagesPerSecond: 3, //maximum messages a user can send per second
   connectionWindowMs: 30000,
-  maxConnectionsPerWindow: 2,
-  maxTotalConnections: 4
+  maxConnectionsPerWindow: 2, //max connections within {connectionWindowMS} (eg 30 seconds)
+  maxTotalConnections: 4, //maximum connections per ip
+  totalMaxConnections: 20 //maximum users online
 };
 
 if (!fs.existsSync(settingsPath)) {
@@ -62,3 +63,43 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`WebSocket server running on ws://localhost:${PORT}`);
 });
+
+const shutdown = () => {
+  console.log('Shutting down server...');
+
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN && client.username) {
+      const leaveText = `${client.username} has left. (Server Shutdown)`;
+      const leaveMsg = { type: 'system', text: leaveText };
+
+      client.send(JSON.stringify(leaveMsg));
+      console.log(leaveText);
+
+      try {
+        const { saveMessage } = require('./utils/db');
+        saveMessage(leaveMsg);
+        const connectionLogger = require('./middleware/connectionLogger');
+        connectionLogger('LEAVE', client.username);
+      } catch (err) {
+        console.error('Error during shutdown logging:', err);
+      }
+    }
+
+    client.close();
+  });
+
+  wss.close(() => {
+    server.close(() => {
+      console.log('Server closed gracefully.');
+      process.exit(0);
+    });
+  });
+
+  setTimeout(() => {
+    console.warn('Force exiting after timeout.');
+    process.exit(1);
+  }, 5000);
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
