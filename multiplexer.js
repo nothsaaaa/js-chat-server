@@ -124,7 +124,7 @@ wss.on("connection", (ws) => {
         } else {
           ws.send(JSON.stringify({
             type: "system",
-            text: "§cYou are not connected to a server. Type /servers or /join <room>."
+            text: "You are not connected to a server. Type /servers or /join <room>."
           }));
         }
       }
@@ -136,7 +136,7 @@ wss.on("connection", (ws) => {
     if (!backend || backend.readyState !== WebSocket.OPEN) {
       ws.send(JSON.stringify({
         type: "system",
-        text: "§cYou are not connected to a server. Type /servers or /join <room>."
+        text: "You are not connected to a server. Type /servers or /join <room>."
       }));
       return;
     }
