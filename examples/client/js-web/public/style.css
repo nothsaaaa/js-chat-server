@@ -28,15 +28,16 @@ h1 {
   font-style: italic;
 }
 
-input, button {
+input, button, textarea {
   background-color: #222;
   border: 1px solid #555;
   color: #ddd;
   padding: 8px;
   border-radius: 4px;
+  font-family: Arial, sans-serif;
 }
 
-input::placeholder {
+input::placeholder, textarea::placeholder {
   color: #666;
 }
 
@@ -50,8 +51,18 @@ button:hover {
   margin-right: 10px;
 }
 
+textarea#messageInput {
+  width: 80%;
+  margin-right: 10px;
+  resize: vertical;
+}
+
 p.username {
   font-weight: bold;
   margin: 0 5px 0 0;
   user-select: none;
+}
+
+#messages p span:not(.username) {
+  white-space: pre-wrap;
 }

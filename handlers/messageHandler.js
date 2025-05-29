@@ -19,7 +19,9 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
-    msg = msg.toString().trim();
+    msg = msg.toString();
+    msg = msg.replace(/^[ \t]+|[ \t]+$/g, '');
+
     if (msg.length > 2000) {
       socket.send(JSON.stringify({
         type: 'system',

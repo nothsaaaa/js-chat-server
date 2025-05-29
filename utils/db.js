@@ -5,7 +5,6 @@ const dbPath = path.join(__dirname, '../chat.db');
 
 const db = new sqlite3.Database(dbPath);
 
-// Create messages table if it doesn't exist
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS messages (

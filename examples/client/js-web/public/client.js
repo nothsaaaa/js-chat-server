@@ -119,8 +119,10 @@
   });
 
   messageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // prevent newline insertion
       sendBtn.click();
     }
   });
+
 })();
