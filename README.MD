@@ -9,7 +9,7 @@ The server is a WebSocket server. It allows multiple clients to:
 
 * Connect with or without a username
 * Receive chat and system messages
-* Change their nickname
+* Run modular-like chat commands, as well as hardcoded commands for authorization
 * View recent chat history on connection
 
 ---
