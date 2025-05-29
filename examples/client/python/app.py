@@ -30,7 +30,6 @@ async def recv_loop(ws):
                     print(f"{user}: {msg['text']}")
                 elif msg["type"] == "system":
                     print(colored(f"[SYSTEM] {msg['text']}", "yellow"))
-            print(colored("", "cyan"))
 
         elif msg_type == "chat":
             user = colored(data['username'], "green")
