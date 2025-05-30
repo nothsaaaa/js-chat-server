@@ -63,7 +63,7 @@ wss.on('connection', (socket, req) => {
 
 const PORT = settings.port || 3000;
 server.listen(PORT, () => {
-  console.log(`WebSocket server running on ws://localhost:${PORT}`);
+  console.log(`Server running on ws://localhost:${PORT}`);
 });
 
 const shutdown = () => {
