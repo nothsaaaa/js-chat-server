@@ -4,4 +4,4 @@ accounts.db
 admins.json
 settings.json
 banned.json
-backends.json
+multiplexer/backends.json
