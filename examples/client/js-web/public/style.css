@@ -2,11 +2,31 @@ body {
   background-color: #121212;
   color: #ddd;
   font-family: Arial, sans-serif;
-  margin: 20px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+}
+
+.container {
+  width: 100%;
+  max-width: 700px;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 h1 {
   color: #fff;
+  margin-bottom: 5px;
+}
+
+.warning {
+  color: #faa;
+  font-weight: bold;
+  margin-top: -5px;
+  margin-bottom: 10px;
 }
 
 #messages {
@@ -14,9 +34,9 @@ h1 {
   height: 300px;
   overflow-y: auto;
   margin-bottom: 10px;
-  padding: 5px;
+  padding: 10px;
   background-color: #1e1e1e;
-  border-radius: 5px;
+  border-radius: 8px;
 }
 
 #messages p {
@@ -28,16 +48,20 @@ h1 {
   font-style: italic;
 }
 
-input, button, textarea {
+input,
+button,
+textarea {
   background-color: #222;
   border: 1px solid #555;
   color: #ddd;
-  padding: 8px;
+  padding: 10px;
   border-radius: 4px;
   font-family: Arial, sans-serif;
+  font-size: 14px;
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: #666;
 }
 
@@ -46,23 +70,45 @@ button:hover {
   cursor: pointer;
 }
 
-#chat input[type="text"] {
-  width: 80%;
-  margin-right: 10px;
+#chat {
+  display: none;
+  margin-top: 15px;
 }
 
-textarea#messageInput {
-  width: 80%;
-  margin-right: 10px;
+#chatControls {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 10px;
+}
+
+#chat textarea#messageInput {
+  flex: 1;
   resize: vertical;
 }
 
 p.username {
   font-weight: bold;
-  margin: 0 5px 0 0;
+  margin-right: 5px;
   user-select: none;
 }
 
 #messages p span:not(.username) {
   white-space: pre-wrap;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.username-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.username-row label {
+  flex: 1;
 }

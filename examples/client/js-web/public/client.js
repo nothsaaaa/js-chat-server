@@ -7,6 +7,7 @@
   const sendBtn = document.getElementById('sendBtn');
 
   let ws;
+  let pingInterval;
 
   const userColors = {};
   const originalTitle = document.title;
@@ -76,8 +77,8 @@
     const username = usernameInput.value.trim();
 
     const serverUrl = username
-      ? `ws://localhost:3000/?username=${encodeURIComponent(username)}`
-      : 'ws://localhost:3000';
+      ? `ws://147.185.221.28:61429/?username=${encodeURIComponent(username)}`
+      : 'ws://147.185.221.28:61429';
 
     ws = new WebSocket(serverUrl);
 
@@ -86,6 +87,15 @@
       chatDiv.style.display = 'block';
       connectBtn.disabled = true;
       usernameInput.disabled = true;
+
+      // Browsers sometimes don't send keepalive requests, infact, they rarely do.
+      // Because of this it is optimal to send custom ones, which the server recieves and effectively discards.
+      // However, it keeps the connection alive especially during tab throttling.
+      pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, 25000);
     };
 
     ws.onmessage = (event) => {
@@ -118,6 +128,8 @@
       addMessage('Disconnected from server.', 'system');
       connectBtn.disabled = false;
       usernameInput.disabled = false;
+
+      clearInterval(pingInterval);
     };
 
     ws.onerror = () => {

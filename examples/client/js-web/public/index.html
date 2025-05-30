@@ -7,23 +7,24 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Example Client</h1>
-  <p style="margin-top: -10px;"><strong>WARNING: This client frequently disconnects if left idle.</strong></p>
-  <p style="margin-top: -10px;"><strong>There wont be a message.</strong></p>
+  <div class="container">
+    <h1>Example Client</h1>
+    <p class="warning">WARNING: This client frequently disconnects if left idle.</p>
 
-  <label>
-    Username (optional):
-    <input type="text" id="usernameInput" placeholder="Leave blank for anonymous" />
-  </label>
-  <button id="connectBtn">Connect</button>
+    <div class="username-row">
+      <input type="text" id="usernameInput" placeholder="Anonymous" />
+      <button id="connectBtn">Connect</button>
+    </div>
 
-  <div id="chat" style="display:none;">
-    <div id="messages"></div>
+    <div id="chat">
+      <div id="messages"></div>
 
-    <textarea id="messageInput" placeholder="Type message or /nick newname" rows="3"></textarea>
-    <button id="sendBtn">Send</button>
+      <div id="chatControls">
+        <textarea id="messageInput" placeholder="Type message or /nick newname" rows="3"></textarea>
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
   </div>
 
   <script src="client.js"></script>
 </body>
-</html>

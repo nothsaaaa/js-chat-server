@@ -4,6 +4,14 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
   const messageTimestamps = [];
 
   return (msg) => {
+    try {
+      const parsed = JSON.parse(msg);
+      if (parsed.type === 'ping') {
+        return;
+      }
+    } catch {
+    }
+
     const now = Date.now();
     const rateLimit = settings.maxMessagesPerSecond || 5;
     messageTimestamps.push(now);
