@@ -6,6 +6,7 @@ module.exports = (socket, req, wss, settings, bannedUsers, broadcast, generateUs
 
   if (!validateUsername(desiredUsername)) {
     socket.send(JSON.stringify({ type: 'system', text: 'Illegal username.' }));
+    socket.send(JSON.stringify({ type: 'system', text: 'Requirement: 3-20 characters alphanumeric.' }));
     socket.close();
     return;
   }

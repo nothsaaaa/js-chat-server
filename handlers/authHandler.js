@@ -29,6 +29,7 @@ module.exports = (socket, req, wss, settings, adminUsers, broadcast, loginLimite
 
     if (!validateUsername(username)) {
       socket.send(JSON.stringify({ type: 'system', text: 'Illegal username.' }));
+      socket.send(JSON.stringify({ type: 'system', text: 'Requirement: 3-20 characters alphanumeric.' }));
       return;
     }
 
