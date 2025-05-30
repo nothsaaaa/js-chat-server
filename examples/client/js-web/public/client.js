@@ -10,6 +10,10 @@
 
   const userColors = {};
 
+  const originalTitle = document.title;
+  let windowFocused = true;
+  let newMessagesWhileUnfocused = false;
+
   function hashCode(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -48,7 +52,26 @@
 
     messagesDiv.appendChild(p);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    if (!windowFocused) {
+      if (!newMessagesWhileUnfocused) {
+        document.title = `*${originalTitle}`;
+        newMessagesWhileUnfocused = true;
+      }
+    }
   }
+
+  window.addEventListener('focus', () => {
+    windowFocused = true;
+    if (newMessagesWhileUnfocused) {
+      document.title = originalTitle;
+      newMessagesWhileUnfocused = false;
+    }
+  });
+
+  window.addEventListener('blur', () => {
+    windowFocused = false;
+  });
 
   connectBtn.addEventListener('click', () => {
     const username = usernameInput.value.trim();
@@ -119,7 +142,7 @@
 
   messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault(); // prevent newline insertion
+      e.preventDefault();
       sendBtn.click();
     }
   });
