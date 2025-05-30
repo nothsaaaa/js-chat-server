@@ -9,7 +9,6 @@
   let ws;
 
   const userColors = {};
-
   const originalTitle = document.title;
   let windowFocused = true;
   let newMessagesWhileUnfocused = false;
@@ -77,8 +76,8 @@
     const username = usernameInput.value.trim();
 
     const serverUrl = username
-      ? `ws://localhost:3000/?username=${encodeURIComponent(username)}`
-      : 'ws://localhost:3000/';
+      ? `ws://147.185.221.28:61429/?username=${encodeURIComponent(username)}`
+      : 'ws://147.185.221.28:61429';
 
     ws = new WebSocket(serverUrl);
 
@@ -119,7 +118,6 @@
       addMessage('Disconnected from server.', 'system');
       connectBtn.disabled = false;
       usernameInput.disabled = false;
-      chatDiv.style.display = 'none';
     };
 
     ws.onerror = () => {
