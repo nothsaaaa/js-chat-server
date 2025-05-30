@@ -53,7 +53,6 @@ server.on('upgrade', (request, socket, head) => {
 });
 
 wss.on('connection', (socket, req) => {
-  // Add error handler on each connection to prevent crashes
   socket.on('error', (err) => {
     console.error('WebSocket client error:', err);
   });
