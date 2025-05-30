@@ -15,4 +15,4 @@ The server is a WebSocket server. It allows multiple clients to:
 ---
 
 Documentation paused during development.
-WIP guide on how clients work at [the clients documentation.](CLIENTS.md)
+WIP guide on how clients work at [the clients documentation.](CLIENTS.MD)
