@@ -93,14 +93,6 @@ The server sends and expects JSON messages with the following types:
   }));
   ```
 
-* **Change nickname**
-
-  Send a message starting with `/nick` followed by the new username as a plain string:
-
-  ```js
-  ws.send("/nick NewName");
-  ```
-
 * **Ping**
 
   This is for web browsers which don't send keepalive requests by default.
