@@ -2,6 +2,9 @@ const http = require('http');
 const WebSocket = require('ws');
 const url = require('url');
 const generateUsername = require('../utils/generateusername');
+const validateUsername = require('../handlers/validateUsername');
+const asettings = require('../settings.json');
+const lastNickChange = new Map();
 
 const PORT = 3000;
 
@@ -61,7 +64,9 @@ server.on('upgrade', (request, socket, head) => {
 
 wss.on('connection', (clientSocket, req) => {
   const { query } = url.parse(req.url, true);
-  let username = query.username || generateUsername();
+  let username = (query.username && validateUsername(query.username))
+    ? query.username
+    : generateUsername();
 
   console.log(`Client connected from ${req.socket.remoteAddress} as "${username}"`);
   clientUsernames.set(clientSocket, username);
@@ -83,7 +88,7 @@ wss.on('connection', (clientSocket, req) => {
 
     backendSocket.on('open', () => {
       connected = true;
-      sendToClient({ type: 'system', text: `Connected to ${serverId} as ${username}` });
+      sendToClient({ type: 'system', text: `PROXY: Connected to ${serverId} as ${username}` });
     });
 
     backendSocket.on('message', (data) => {
@@ -96,24 +101,24 @@ wss.on('connection', (clientSocket, req) => {
 
     backendSocket.on('close', () => {
       connected = false;
-      sendToClient({ type: 'system', text: `Disconnected from ${serverId}` });
+      sendToClient({ type: 'system', text: `PROXY: Disconnected from ${serverId}` });
     });
 
-    backendSocket.on('error', (err) => {
+    backendSocket.on('system', (err) => {
       sendToClient({
-        type: 'error',
-        text: `Failed to connect to ${serverId}: ${err.message}`
+        type: 'system',
+        text: `PROXY: Failed to connect to ${serverId}: ${err.message}`
       });
     });
   };
 
   sendToClient({
     type: 'system',
-    text: `Welcome ${username}! Use /join <server_id> to connect`,
+    text: `PROXY: Welcome ${username}! Use /join <server_id> to connect`,
   });
   sendToClient({
     type: 'system',
-    text: `Type /servers for a list of servers.`,
+    text: `PROXY: Type /servers for a list of servers.`,
   });
 
   clientSocket.on('message', (data) => {
@@ -121,30 +126,61 @@ wss.on('connection', (clientSocket, req) => {
     try {
       message = JSON.parse(data);
     } catch (err) {
-      return sendToClient({ type: 'error', text: 'Invalid message format.' });
-    }
-    if (message.type !== 'message' || typeof message.content !== 'string') {
-      return sendToClient({ type: 'error', text: 'Invalid message structure.' });
+      sendToClient({ type: 'system', text: 'PROXY: Invalid message format.' });
+      return;
     }
 
+    // Ignore ping messages
+    if (message.type === 'ping') {
+      return;
+    }
+
+    if (message.type !== 'message' || typeof message.content !== 'string') {
+      sendToClient({ type: 'system', text: 'PROXY: Invalid message structure.' });
+      return;
+    }
+
+    const content = message.content.trim();
     const raw = message.content.trim();
     const stripped = raw.replace(/^[^:\s]+:\s*/, '');
 
     if (stripped.startsWith('/nick ')) {
       const newNick = stripped.split(/\s+/)[1];
-      if (newNick) {
-        username = newNick;
-        clientUsernames.set(clientSocket, newNick);
-        return sendToClient({ type: 'system', text: `Username changed to ${newNick}` });
-      } else {
-        return sendToClient({ type: 'error', text: 'Usage: /nick <new_name>' });
+      if (!newNick) {
+        sendToClient({ type: 'system', text: 'PROXY: Usage: /nick <new_name>' });
+        return;
       }
+
+      if (!validateUsername(newNick)) {
+        sendToClient({ type: 'system', text: 'PROXY: Illegal username. Requirement: 3-20 characters alphanumeric.' });
+        return;
+      }
+
+      const lastChange = lastNickChange.get(clientSocket) || 0;
+      const now = Date.now();
+
+      if (now - lastChange < asettings.nickChangeCooldown * 1000) {
+        const wait = Math.ceil((asettings.nickChangeCooldown * 1000 - (now - lastChange)) / 1000);
+        sendToClient({ type: 'system', text: `PROXY: You must wait ${wait}s before changing your nickname again.` });
+        return;
+      }
+
+      username = newNick;
+      clientUsernames.set(clientSocket, newNick);
+      lastNickChange.set(clientSocket, now);
+
+      if (backendSocket && backendSocket.readyState === WebSocket.OPEN) {
+        backendSocket.send(JSON.stringify({ type: 'message', content }));
+      }
+
+      sendToClient({ type: 'system', text: `PROXY: Username changed to ${newNick}` });
+      return;
     }
 
     if (stripped === '/servers') {
       return sendToClient({
         type: 'system',
-        text: `Available servers: ${Object.keys(backendServers).join(', ')}`
+        text: `PROXY: Available servers: ${Object.keys(backendServers).join(', ')}`
       });
     }
 
@@ -153,8 +189,8 @@ wss.on('connection', (clientSocket, req) => {
       const serverId = joinMatch[1];
       if (!backendServers[serverId]) {
         return sendToClient({
-          type: 'error',
-          text: `Unknown server ID "${serverId}". Available: ${Object.keys(backendServers).join(', ')}`
+          type: 'system',
+          text: `PROXY: Unknown server ID "${serverId}".`
         });
       }
       if (backendSocket && backendSocket.readyState === WebSocket.OPEN) {
@@ -164,14 +200,14 @@ wss.on('connection', (clientSocket, req) => {
     }
 
     if (!connected) {
-      return sendToClient({ type: 'system', text: 'Use /join <server_id> to connect to a chat server.' });
+      return sendToClient({ type: 'system', text: 'PROXY: Use /join <server_id> to connect to a chat server.' });
     }
 
     if (backendSocket.readyState === WebSocket.OPEN) {
       backendSocket.send(JSON.stringify(message));
     } else {
       connected = false;
-      sendToClient({ type: 'error', text: 'Lost connection to backend server.' });
+      sendToClient({ type: 'system', text: 'PROXY: Lost connection to server.' });
     }
   });
 
