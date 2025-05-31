@@ -56,7 +56,7 @@ The server sends and expects JSON messages with the following types:
   }
   ```
 
-* **`chat`**: Regular chat message from a user.
+* **`chat`**: Regular chat message from a user. This is outgoing, after the server processed it (including things like filtering, commands, etc.)
 
   ```json
   {
@@ -82,17 +82,20 @@ The server sends and expects JSON messages with the following types:
 
 * **Chat message**
 
-  Simply send the message text as a string over the WebSocket.
+  Send a JSON string representing an object with `type: "message"` and the message content in the `content` field.
 
   Example:
 
   ```js
-  ws.send("Hello everyone!");
+  ws.send(JSON.stringify({
+    type: "message",
+    content: "Hello everyone!"
+  }));
   ```
 
 * **Change nickname**
 
-  Send a message starting with `/nick` followed by the new username:
+  Send a message starting with `/nick` followed by the new username as a plain string:
 
   ```js
   ws.send("/nick NewName");
@@ -101,23 +104,21 @@ The server sends and expects JSON messages with the following types:
 * **Ping**
 
   This is for web browsers which don't send keepalive requests by default.
-  If you don't send a ping then it will disconnect when idle and no messages have been sent, even if received.
+  If you don't send a ping, the connection may close when idle.
 
   The ping message is a JSON string like this:
 
   ```json
-  { type: 'ping' }
+  { "type": "ping" }
   ```
 
-  The server will ignore this message and the web browser will keep the connection open.
-  Clients typically send this every 25 seconds.
+  The server ignores this message; clients typically send it every 25 seconds.
 
 ---
 
-## Notes
+### Notes
 
-* The client should not send system messages.
-* The server handles system messages internally (e.g., join/leave notifications).
-* Messages must be sent as plain strings.
-* The server broadcasts all messages to connected clients in JSON format.
-* Timestamps are ISO 8601 strings.
+* Messages **must** be sent as strings, but chat messages should be JSON strings with the structure shown above.
+* Nickname changes and commands remain as plain string messages starting with `/`.
+* The server broadcasts messages in JSON format to all connected clients.
+* Sending invalid or malformed JSON will result in an error message from the server.
