@@ -1,168 +1,189 @@
-// DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS
-// DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS
-// DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS
-// DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS
+const http = require('http');
+const WebSocket = require('ws');
+const url = require('url');
+const generateUsername = require('../utils/generateusername');
 
-//
-// This does not work properly. Keeping it for reference only.
-//
+const PORT = 3000;
 
-// DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS
-// DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS
-// DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS
-// DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS DO NOT USE THIS
-
-const WebSocket = require("ws");
-const fs = require("fs");
-const path = require("path");
-
-const backendsFile = path.join(__dirname, "backends.json");
-
-const defaultBackends = {
-  room1: "ws://localhost:3001",
-  room2: "ws://localhost:3002",
+const backendServers = {
+  mainChat: 'ws://localhost:3001',
+  testChat: 'ws://localhost:3002',
 };
 
-if (!fs.existsSync(backendsFile)) {
-  console.log("backends.json not found. creating default backends.json");
-  fs.writeFileSync(backendsFile, JSON.stringify(defaultBackends, null, 2), "utf-8");
-  console.log("created backends.json with default servers:", Object.keys(defaultBackends).join(", "));
-}
+const settings = {
+  serverName: "My Proxy Server",
+  totalMaxConnections: 9999,
+  port: PORT
+};
 
-const backends = JSON.parse(fs.readFileSync(backendsFile));
+const server = http.createServer();
 
-const wss = new WebSocket.Server({ port: 3000 });
-console.log("Proxy listening on ws://localhost:3000");
+const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false });
 
-function getMotd() {
-  return "Welcome to the Multiplexer Proxy! Use /servers to list rooms, /join <room> to connect.";
-}
+const clientUsernames = new Map();
 
-function handleCommand(message, client, context) {
-  const [cmd, ...args] = message.slice(1).trim().split(/\s+/);
+function serverInfoHandler(req, res, wss, settings) {
+  const parsedUrl = url.parse(req.url, true);
 
-  if (cmd === "join") {
-    const targetServer = args[0];
-    if (!context.backends[targetServer]) {
-      client.send(JSON.stringify({ type: "system", text: `Unknown server: ${targetServer}` }));
-    } else {
-      client.send(JSON.stringify({ type: "system", text: `Connecting to ${targetServer}...` }));
-      context.switchServer(client, targetServer);
-    }
+  if (parsedUrl.pathname === '/server-info') {
+    const info = {
+      serverName: settings.serverName || "Unnamed Proxy",
+      totalMaxConnections: settings.totalMaxConnections,
+      currentOnline: wss.clients.size
+    };
+
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.end(JSON.stringify(info));
     return true;
   }
-
-  if (cmd === "servers") {
-    const list = Object.keys(context.backends).join(", ");
-    client.send(JSON.stringify({ type: "system", text: `Available servers: ${list}` }));
-    return true;
-  }
-
   return false;
 }
 
-function createRouter(backends) {
-  const clientToBackend = new Map();
+server.on('request', (req, res) => {
+  if (!serverInfoHandler(req, res, wss, settings)) {
+    res.writeHead(404);
+    res.end('Not found');
+  }
+});
 
-  function switchServer(client, targetName) {
-    const url = backends[targetName];
-    if (!url) return;
+server.on('upgrade', (request, socket, head) => {
+  if (request.headers['upgrade'] !== 'websocket') {
+    socket.destroy();
+    return;
+  }
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
 
-    if (clientToBackend.has(client)) {
-      clientToBackend.get(client).terminate();
+wss.on('connection', (clientSocket, req) => {
+  const { query } = url.parse(req.url, true);
+  let username = query.username || generateUsername();
+
+  console.log(`Client connected from ${req.socket.remoteAddress} as "${username}"`);
+  clientUsernames.set(clientSocket, username);
+
+  let backendSocket = null;
+  let connected = false;
+  let currentServerId = null;
+
+  const sendToClient = (obj) => {
+    if (clientSocket.readyState === WebSocket.OPEN) {
+      clientSocket.send(JSON.stringify(obj));
     }
+  };
 
-    const backend = new WebSocket(url);
-    clientToBackend.set(client, backend);
-    client._connectedTo = targetName;
+  const connectToBackend = (serverId) => {
+    const targetUrl = `${backendServers[serverId]}?username=${encodeURIComponent(username)}`;
+    backendSocket = new WebSocket(targetUrl);
+    currentServerId = serverId;
 
-    backend.on("open", () => {
-      client.send(JSON.stringify({ type: "system", text: `Connected to ${targetName}` }));
+    backendSocket.on('open', () => {
+      connected = true;
+      sendToClient({ type: 'system', text: `Connected to ${serverId} as ${username}` });
     });
 
-    backend.on("message", (data, isBinary) => {
-      if (isBinary) {
-        const text = data.toString();
-        try {
-          const json = JSON.parse(text);
-          client.send(JSON.stringify(json));
-        } catch (err) {
-          client.send(JSON.stringify({ type: "system", text: "Received invalid binary message from backend." }));
-        }
+    backendSocket.on('message', (data) => {
+      try {
+        sendToClient(JSON.parse(data));
+      } catch {
+        sendToClient({ type: 'message', content: data.toString() });
+      }
+    });
+
+    backendSocket.on('close', () => {
+      connected = false;
+      sendToClient({ type: 'system', text: `Disconnected from ${serverId}` });
+    });
+
+    backendSocket.on('error', (err) => {
+      sendToClient({
+        type: 'error',
+        text: `Failed to connect to ${serverId}: ${err.message}`
+      });
+    });
+  };
+
+  sendToClient({
+    type: 'system',
+    text: `Welcome ${username}! Use /join <server_id> to connect`,
+  });
+  sendToClient({
+    type: 'system',
+    text: `Type /servers for a list of servers.`,
+  });
+
+  clientSocket.on('message', (data) => {
+    let message;
+    try {
+      message = JSON.parse(data);
+    } catch (err) {
+      return sendToClient({ type: 'error', text: 'Invalid message format.' });
+    }
+    if (message.type !== 'message' || typeof message.content !== 'string') {
+      return sendToClient({ type: 'error', text: 'Invalid message structure.' });
+    }
+
+    const raw = message.content.trim();
+    const stripped = raw.replace(/^[^:\s]+:\s*/, '');
+
+    if (stripped.startsWith('/nick ')) {
+      const newNick = stripped.split(/\s+/)[1];
+      if (newNick) {
+        username = newNick;
+        clientUsernames.set(clientSocket, newNick);
+        return sendToClient({ type: 'system', text: `Username changed to ${newNick}` });
       } else {
-        client.send(data.toString());
+        return sendToClient({ type: 'error', text: 'Usage: /nick <new_name>' });
       }
-    });
-
-    backend.on("close", () => {
-      client.send(JSON.stringify({ type: "system", text: "Disconnected from backend." }));
-    });
-
-    backend.on("error", (err) => {
-      client.send(JSON.stringify({ type: "system", text: `Backend error: ${err.message}` }));
-    });
-
-    client.on("close", () => {
-      if (backend.readyState === WebSocket.OPEN) backend.close();
-      clientToBackend.delete(client);
-    });
-  }
-
-  function getBackend(client) {
-    return clientToBackend.get(client);
-  }
-
-  return { switchServer, getBackend };
-}
-
-const { switchServer, getBackend } = createRouter(backends);
-
-wss.on("connection", (ws) => {
-  ws.send(JSON.stringify({ type: "motd", text: getMotd() }));
-  ws.send(JSON.stringify({
-    type: "system",
-    text: "Type /servers to list rooms, /join <room> to connect."
-  }));
-
-  ws.on("message", (msg) => {
-    const str = msg.toString();
-
-    if (str.startsWith("/")) {
-      // Try to handle proxy commands:
-      const handled = handleCommand(str, ws, { backends, switchServer });
-      if (!handled) {
-        // Not a proxy command, forward to backend if connected
-        const backend = getBackend(ws);
-        if (backend && backend.readyState === WebSocket.OPEN) {
-          backend.send(msg);
-        } else {
-          ws.send(JSON.stringify({
-            type: "system",
-            text: "You are not connected to a server. Type /servers or /join <room>."
-          }));
-        }
-      }
-      return;
     }
 
-    // Normal message (not command), forward only if connected
-    const backend = getBackend(ws);
-    if (!backend || backend.readyState !== WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        type: "system",
-        text: "You are not connected to a server. Type /servers or /join <room>."
-      }));
-      return;
+    if (stripped === '/servers') {
+      return sendToClient({
+        type: 'system',
+        text: `Available servers: ${Object.keys(backendServers).join(', ')}`
+      });
     }
 
-    backend.send(msg);
+    const joinMatch = stripped.match(/^\/join\s+(\S+)$/);
+    if (joinMatch) {
+      const serverId = joinMatch[1];
+      if (!backendServers[serverId]) {
+        return sendToClient({
+          type: 'error',
+          text: `Unknown server ID "${serverId}". Available: ${Object.keys(backendServers).join(', ')}`
+        });
+      }
+      if (backendSocket && backendSocket.readyState === WebSocket.OPEN) {
+        backendSocket.close();
+      }
+      return connectToBackend(serverId);
+    }
+
+    if (!connected) {
+      return sendToClient({ type: 'system', text: 'Use /join <server_id> to connect to a chat server.' });
+    }
+
+    if (backendSocket.readyState === WebSocket.OPEN) {
+      backendSocket.send(JSON.stringify(message));
+    } else {
+      connected = false;
+      sendToClient({ type: 'error', text: 'Lost connection to backend server.' });
+    }
   });
 
-
-  ws.on("close", () => {
-    const backend = getBackend(ws);
-    if (backend && backend.readyState === WebSocket.OPEN) {
-      backend.close();
+  clientSocket.on('close', () => {
+    if (backendSocket && backendSocket.readyState === WebSocket.OPEN) {
+      backendSocket.close();
     }
+    clientUsernames.delete(clientSocket);
+    console.log(`Client from ${req.socket.remoteAddress} disconnected`);
   });
+});
+
+server.listen(PORT, () => {
+  console.log(`Proxy listening on http://localhost:${PORT}`);
 });
