@@ -120,3 +120,33 @@ label {
 a {
   color:peru;
 }
+
+.spoiler {
+  background-color: #444;
+  color: transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 0 5px;
+  transition: color 0.5s ease, background-color 0.5s ease;
+  user-select: none;
+  position: relative;
+}
+
+
+.spoiler-content {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0 5px;
+  color: #ddd;
+  background-color: #444;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+.spoiler.revealed {
+  color: #ddd;
+  background-color: #222;
+  pointer-events: none;
+}

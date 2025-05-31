@@ -64,11 +64,23 @@
   function convertLinksSafe(text) {
     const escapedText = escapeHTML(text);
     const urlRegex = /(\bhttps?:\/\/[^\s]+)/gi;
-    return escapedText.replace(urlRegex, (url) => {
+    let linkedText = escapedText.replace(urlRegex, (url) => {
       const safeUrl = url.replace(/"/g, "&quot;");
       return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${url}</a>`;
     });
+
+    linkedText = linkedText
+      .replace(/\*\*\*(.+?)\*\*\*/g, '<b><i>$1</i></b>')      // ***bold italic***
+      .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')                 // **bold**
+      .replace(/\*(.+?)\*/g, '<i>$1</i>')                     // *italic*
+      .replace(/\|\|(.+?)\|\|/g, (_, spoilerText) => {
+        const safeText = escapeHTML(spoilerText);
+        return `<span class="spoiler" onclick="this.classList.add('revealed')">${safeText}</span>`;
+      });
+
+    return linkedText;
   }
+
 
   function addMessage(text, className = '', username = null) {
     const p = document.createElement('p');
