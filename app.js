@@ -1,6 +1,7 @@
 const http = require('http');
 const WebSocket = require('ws');
 const websocketHandler = require('./routes/websocket');
+const serverInfoHandler = require('./utils/serverInfoHandler'); // <-- import here
 const fs = require('fs');
 const path = require('path');
 
@@ -14,9 +15,11 @@ const defaultSettings = {
   maxConnectionsPerWindow: 2, //max connections within {connectionWindowMS} (eg 30 seconds)
   maxTotalConnections: 4, //maximum connections per ip
   totalMaxConnections: 20, //maximum users online
+  serverName: "My Chat Server",
   port: 3000,
   motd: "Welcome to the chat! Be respectful and have fun.",
 };
+
 
 if (!fs.existsSync(settingsPath)) {
   fs.writeFileSync(settingsPath, JSON.stringify(defaultSettings, null, 2));
@@ -39,6 +42,13 @@ const server = http.createServer();
 const wss = new WebSocket.Server({
   noServer: true,
   perMessageDeflate: false  // Disable deflate to avoid RSV issues
+});
+
+server.on('request', (req, res) => {
+  if (!serverInfoHandler(req, res, wss, settings)) {
+    res.writeHead(404);
+    res.end();
+  }
 });
 
 server.on('upgrade', (request, socket, head) => {

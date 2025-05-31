@@ -70,11 +70,15 @@ button:hover {
   cursor: pointer;
 }
 
+/*
 #chat {
   display: none;
   margin-top: 15px;
 }
-
+*/
+#chat {
+  margin-top: 15px;
+}
 #chatControls {
   display: flex;
   gap: 10px;

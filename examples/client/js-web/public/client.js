@@ -5,14 +5,31 @@
   const messagesDiv = document.getElementById('messages');
   const messageInput = document.getElementById('messageInput');
   const sendBtn = document.getElementById('sendBtn');
+  const serverInfoBtn = document.getElementById('serverInfoBtn');
 
   let ws;
   let pingInterval;
 
   const userColors = {};
   const originalTitle = document.title;
+  const serverIP = "147.185.221.28:61429"
   let windowFocused = true;
   let newMessagesWhileUnfocused = false;
+
+  async function fetchServerInfo() {
+    try {
+      const res = await fetch('http://' + serverIP + '/server-info');
+      if (!res.ok) throw new Error('Failed to fetch server info');
+      const info = await res.json();
+
+      addMessage(`Server Name: ${info.serverName}`,'system')
+      addMessage(`Max Connections: ${info.totalMaxConnections}`,'system')
+      addMessage(`Current Online: ${info.currentOnline}`,'system')
+      
+    } catch (err) {
+      addMessage(`Error fetching server info: ${err.message}`, 'system');
+    }
+  }
 
   function hashCode(str) {
     let hash = 0;
@@ -75,10 +92,10 @@
 
   connectBtn.addEventListener('click', () => {
     const username = usernameInput.value.trim();
-
+    
     const serverUrl = username
-      ? `ws://147.185.221.28:61429/?username=${encodeURIComponent(username)}`
-      : 'ws://147.185.221.28:61429';
+      ? 'ws://' + serverIP + `/?username=${encodeURIComponent(username)}`
+      : 'ws://' + serverIP;
 
     ws = new WebSocket(serverUrl);
 
@@ -145,15 +162,21 @@
     const msg = messageInput.value.trim();
     if (!msg) return;
 
-    const messageObject = {
-      type: 'message',
-      content: msg,
-    };
+    if (msg.startsWith('/nick ')) {
+      ws.send(msg);
+    } else {
+      ws.send(JSON.stringify({
+        type: "message",
+        content: msg
+      }));
+    }
 
-    ws.send(JSON.stringify(messageObject));
     messageInput.value = '';
     messageInput.focus();
   });
+
+
+  serverInfoBtn.addEventListener('click', fetchServerInfo);
 
   messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
