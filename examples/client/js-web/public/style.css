@@ -116,3 +116,7 @@ label {
 .username-row label {
   flex: 1;
 }
+
+a {
+  color:peru;
+}

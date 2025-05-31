@@ -12,7 +12,7 @@
 
   const userColors = {};
   const originalTitle = document.title;
-  const serverIP = "147.185.221.28:61429"
+  const serverIP = "147.185.221.28:61429";
   let windowFocused = true;
   let newMessagesWhileUnfocused = false;
 
@@ -22,10 +22,9 @@
       if (!res.ok) throw new Error('Failed to fetch server info');
       const info = await res.json();
 
-      addMessage(`Server Name: ${info.serverName}`,'system')
-      addMessage(`Max Connections: ${info.totalMaxConnections}`,'system')
-      addMessage(`Current Online: ${info.currentOnline}`,'system')
-      
+      addMessage(`Server Name: ${info.serverName}`, 'system');
+      addMessage(`Max Connections: ${info.totalMaxConnections}`, 'system');
+      addMessage(`Current Online: ${info.currentOnline}`, 'system');
     } catch (err) {
       addMessage(`Error fetching server info: ${err.message}`, 'system');
     }
@@ -49,6 +48,28 @@
     return color;
   }
 
+  function escapeHTML(str) {
+    return str.replace(/[&<>"']/g, (tag) => {
+      const charsToReplace = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      };
+      return charsToReplace[tag] || tag;
+    });
+  }
+
+  function convertLinksSafe(text) {
+    const escapedText = escapeHTML(text);
+    const urlRegex = /(\bhttps?:\/\/[^\s]+)/gi;
+    return escapedText.replace(urlRegex, (url) => {
+      const safeUrl = url.replace(/"/g, "&quot;");
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    });
+  }
+
   function addMessage(text, className = '', username = null) {
     const p = document.createElement('p');
     if (className) p.classList.add(className);
@@ -61,10 +82,10 @@
       p.appendChild(userSpan);
 
       const msgSpan = document.createElement('span');
-      msgSpan.textContent = text;
+      msgSpan.innerHTML = convertLinksSafe(text);
       p.appendChild(msgSpan);
     } else {
-      p.textContent = text;
+      p.innerHTML = convertLinksSafe(text);
     }
 
     messagesDiv.appendChild(p);
@@ -92,7 +113,7 @@
 
   connectBtn.addEventListener('click', () => {
     const username = usernameInput.value.trim();
-    
+
     const serverUrl = username
       ? 'ws://' + serverIP + `/?username=${encodeURIComponent(username)}`
       : 'ws://' + serverIP;
@@ -105,9 +126,6 @@
       connectBtn.disabled = true;
       usernameInput.disabled = true;
 
-      // Browsers sometimes don't send keepalive requests, infact, they rarely do.
-      // Because of this it is optimal to send custom ones, which the server recieves and effectively discards.
-      // However, it keeps the connection alive especially during tab throttling.
       pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'ping' }));
@@ -170,7 +188,6 @@
     messageInput.value = '';
     messageInput.focus();
   });
-
 
   serverInfoBtn.addEventListener('click', fetchServerInfo);
 
