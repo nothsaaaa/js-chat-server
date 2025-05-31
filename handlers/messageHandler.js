@@ -10,7 +10,7 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
     } catch {
       socket.send(JSON.stringify({
         type: 'system',
-        text: 'Invalid message format. Messages must be JSON.',
+        text: 'Invalid message format.',
       }));
       return;
     }
@@ -22,7 +22,7 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
     if (parsed.type !== 'message' || typeof parsed.content !== 'string') {
       socket.send(JSON.stringify({
         type: 'system',
-        text: 'Invalid message structure. Must be: { "type": "message", "content": "..." }',
+        text: 'Invalid message structure.',
       }));
       return;
     }
