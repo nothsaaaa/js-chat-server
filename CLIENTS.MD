@@ -17,16 +17,16 @@ The chat server uses a WebSocket connection to handle real-time messaging. Clien
 
 ## Connecting to the Server
 
-* The server WebSocket URL is:
+* The public community server URL is:
 
   ```
-  ws://localhost:3000
+  ws://147.185.221.28:61429
   ```
 
 * You can optionally pass a username as a URL query parameter:
 
   ```
-  ws://localhost:3000?username=YourName
+  ws://147.185.221.28:61429?username=YourName
   ```
 
 * If no username is provided, the server assigns a random anonymous username.
