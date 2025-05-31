@@ -9,8 +9,8 @@ const lastNickChange = new Map();
 const PORT = 3000;
 
 const backendServers = {
-  mainChat: 'ws://localhost:3001',
-  testChat: 'ws://localhost:3002',
+  main: 'ws://localhost:3001',
+  testing: 'ws://localhost:3002',
 };
 
 const settings = {
