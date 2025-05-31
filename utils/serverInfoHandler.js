@@ -12,6 +12,7 @@ function serverInfoHandler(req, res, wss, settings) {
 
     res.writeHead(200, {
       'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
     });
     res.end(JSON.stringify(info));
     return true;

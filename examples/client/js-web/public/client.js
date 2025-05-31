@@ -162,14 +162,10 @@
     const msg = messageInput.value.trim();
     if (!msg) return;
 
-    if (msg.startsWith('/nick ')) {
-      ws.send(msg);
-    } else {
-      ws.send(JSON.stringify({
-        type: "message",
-        content: msg
-      }));
-    }
+    ws.send(JSON.stringify({
+      type: "message",
+      content: msg
+    }));
 
     messageInput.value = '';
     messageInput.focus();
