@@ -4,12 +4,24 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
   const messageTimestamps = [];
 
   return (msg) => {
+    let parsed;
+
     try {
-      const parsed = JSON.parse(msg);
-      if (parsed.type === 'ping') {
-        return;
-      }
+      parsed = JSON.parse(msg);
     } catch {
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: 'Invalid message format.',
+      }));
+      return;
+    }
+
+    if (!parsed || typeof parsed !== 'object' || parsed.type !== 'message' || typeof parsed.content !== 'string') {
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: 'Invalid message structure.',
+      }));
+      return;
     }
 
     const now = Date.now();
@@ -27,10 +39,9 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
-    msg = msg.toString();
-    msg = msg.replace(/^[ \t]+|[ \t]+$/g, '');
+    let content = parsed.content.trim();
 
-    if (msg.length > 2000) {
+    if (content.length > 2000) {
       socket.send(JSON.stringify({
         type: 'system',
         text: 'Your message is too long. Max 2000 characters.',
@@ -38,7 +49,7 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
-    if (Buffer.byteLength(msg, 'utf-8') > 5120) {
+    if (Buffer.byteLength(content, 'utf-8') > 5120) {
       socket.send(JSON.stringify({
         type: 'system',
         text: 'Your message is too large. Max 5KB.',
@@ -46,12 +57,12 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
-    if (handleCommand(msg, socket, wss, broadcast, settings, adminUsers)) return;
+    if (handleCommand(content, socket, wss, broadcast, settings, adminUsers)) return;
 
     const messageObj = {
       type: 'chat',
       username: socket.username,
-      text: msg,
+      text: content,
       timestamp: new Date().toISOString(),
     };
 

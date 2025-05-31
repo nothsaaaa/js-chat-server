@@ -10,7 +10,14 @@ async def send_loop(ws):
         text = await loop.run_in_executor(None, sys.stdin.readline)
         text = text.strip()
         if text:
-            await ws.send(text)
+            message_obj = {
+                "type": "message",
+                "content": text
+            }
+            try:
+                await ws.send(json.dumps(message_obj))
+            except Exception as e:
+                print(colored(f"Failed to send message: {e}", "red"))
 
 async def recv_loop(ws):
     async for message in ws:

@@ -77,8 +77,8 @@
     const username = usernameInput.value.trim();
 
     const serverUrl = username
-      ? `ws://localhost:3000/?username=${encodeURIComponent(username)}`
-      : 'ws://localhost:3000';
+      ? `ws://147.185.221.28:61429/?username=${encodeURIComponent(username)}`
+      : 'ws://147.185.221.28:61429';
 
     ws = new WebSocket(serverUrl);
 
@@ -145,7 +145,12 @@
     const msg = messageInput.value.trim();
     if (!msg) return;
 
-    ws.send(msg);
+    const messageObject = {
+      type: 'message',
+      content: msg,
+    };
+
+    ws.send(JSON.stringify(messageObject));
     messageInput.value = '';
     messageInput.focus();
   });
