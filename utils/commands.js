@@ -7,9 +7,10 @@ const isIllegalUsername = (username) => {
   return !/^[A-Za-z0-9_-]{3,20}$/.test(username);
 };
 
+const BLOCK_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
+
 const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
   const isAuth = settings.authentication;
-
   const nickChangeCooldown = typeof settings.nickChangeCooldown === 'number' ? settings.nickChangeCooldown : 60000;
 
   if (msg.startsWith('/nick')) {
@@ -29,7 +30,6 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
     }
 
     const newName = clampUsername(msg.slice(5).trim());
-
     if (isIllegalUsername(newName)) {
       socket.send(JSON.stringify({
         type: 'system',
@@ -39,12 +39,8 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
     }
 
     const oldName = socket.username;
-
     if (wss.usernames.has(newName)) {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: `Username "${newName}" is already taken.`,
-      }));
+      socket.send(JSON.stringify({ type: 'system', text: `Username "${newName}" is already taken.` }));
       return true;
     }
 
@@ -67,7 +63,7 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
   }
 
   if (msg.startsWith('/kick')) {
-    if (!settings.authentication || !socket.isAdmin) {
+    if (!isAuth || !socket.isAdmin) {
       socket.send(JSON.stringify({ type: 'system', text: 'You do not have permission to use /kick.' }));
       return true;
     }
@@ -79,17 +75,12 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
     }
 
     const target = clampUsername(targetRaw);
-
     if (isIllegalUsername(target)) {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: 'Illegal username in /kick command.',
-      }));
+      socket.send(JSON.stringify({ type: 'system', text: 'Illegal username in /kick command.' }));
       return true;
     }
 
     let found = false;
-
     wss.clients.forEach((client) => {
       if (client.username === target && client !== socket) {
         client.send(JSON.stringify({ type: 'system', text: 'You have been kicked by an admin.' }));
@@ -108,7 +99,7 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
   }
 
   if (msg.startsWith('/ban')) {
-    if (!settings.authentication || !socket.isAdmin) {
+    if (!isAuth || !socket.isAdmin) {
       socket.send(JSON.stringify({ type: 'system', text: 'You do not have permission to use /ban.' }));
       return true;
     }
@@ -120,16 +111,11 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
     }
 
     const target = clampUsername(targetRaw);
-
     if (isIllegalUsername(target)) {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: 'Illegal username in /ban command.',
-      }));
+      socket.send(JSON.stringify({ type: 'system', text: 'Illegal username in /ban command.' }));
       return true;
     }
 
-    // Load banned users from file
     const bannedPath = path.join(__dirname, '../banned.json');
     let bannedUsers = [];
     if (fs.existsSync(bannedPath)) {
@@ -164,7 +150,7 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
   }
 
   if (msg.startsWith('/unban')) {
-    if (!settings.authentication || !socket.isAdmin) {
+    if (!isAuth || !socket.isAdmin) {
       socket.send(JSON.stringify({ type: 'system', text: 'You do not have permission to use /unban.' }));
       return true;
     }
@@ -176,12 +162,8 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
     }
 
     const target = clampUsername(targetRaw);
-
     if (isIllegalUsername(target)) {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: 'Illegal username in /unban command.',
-      }));
+      socket.send(JSON.stringify({ type: 'system', text: 'Illegal username in /unban command.' }));
       return true;
     }
 
@@ -206,6 +188,43 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
     return true;
   }
 
+  if (msg.startsWith('/block')) {
+    const targetRaw = msg.slice(6).trim();
+    if (!targetRaw) {
+      socket.send(JSON.stringify({ type: 'system', text: 'Usage: /block <username>' }));
+      return true;
+    }
+
+    const target = clampUsername(targetRaw);
+    if (target === socket.username) {
+      socket.send(JSON.stringify({ type: 'system', text: 'You cannot block yourself.' }));
+      return true;
+    }
+
+    if (!socket.blockedUsers) socket.blockedUsers = {};
+    socket.blockedUsers[target] = Date.now();
+    socket.send(JSON.stringify({ type: 'system', text: `You have blocked ${target} for 12 hours.` }));
+    return true;
+  }
+
+  if (msg.startsWith('/unblock')) {
+    const targetRaw = msg.slice(8).trim();
+    if (!targetRaw) {
+      socket.send(JSON.stringify({ type: 'system', text: 'Usage: /unblock <username>' }));
+      return true;
+    }
+
+    const target = clampUsername(targetRaw);
+    if (socket.blockedUsers && socket.blockedUsers[target]) {
+      delete socket.blockedUsers[target];
+      socket.send(JSON.stringify({ type: 'system', text: `You have unblocked ${target}.` }));
+    } else {
+      socket.send(JSON.stringify({ type: 'system', text: `${target} was not blocked.` }));
+    }
+
+    return true;
+  }
+
   if (msg === '/help') {
     const helpText = [
       '/nick <name> - Change your nickname (disabled if authentication is enabled).',
@@ -213,6 +232,8 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
       '/kick <username> - Kick a user (admins only).',
       '/ban <username> - Ban a user (admins only).',
       '/unban <username> - Unban a user (admins only).',
+      '/block <username> - Block a user for 12 hours.',
+      '/unblock <username> - Unblock a user.',
       '/help - Show this help message.'
     ].join('\n');
 

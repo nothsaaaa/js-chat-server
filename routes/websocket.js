@@ -1,25 +1,25 @@
-const loadSettings = require('../handlers/loadSettings');
 console.log('Loading loadSettings');
-const loadBansAndAdmins = require('../handlers/loadBansAndAdmins');
+const loadSettings = require('../handlers/loadSettings');
 console.log('Loading loadBansAndAdmins');
-const connectionLimiter = require('../handlers/connectionLimiter');
+const loadBansAndAdmins = require('../handlers/loadBansAndAdmins');
 console.log('Loading connectionLimiter');
-const broadcast = require('../handlers/broadcast');
+const connectionLimiter = require('../handlers/connectionLimiter');
 console.log('Loading broadcast');
-const authHandler = require('../handlers/authHandler');
+const broadcast = require('../handlers/broadcast');
 console.log('Loading authHandler');
-const unauthHandler = require('../handlers/unauthHandler');
+const authHandler = require('../handlers/authHandler');
 console.log('Loading unauthHandler');
-const { clampUsername } = require('../utils/colorUtils');
+const unauthHandler = require('../handlers/unauthHandler');
 console.log('Loading colorUtils');
-const generateUsername = require('../utils/generateUsername');
+const { clampUsername } = require('../utils/colorUtils');
 console.log('Loading generateUsername');
-const connectionLogger = require('../middleware/connectionLogger');
+const generateUsername = require('../utils/generateUsername');
 console.log('Loading connectionLogger');
-const handleCommand = require('../utils/commands');
+const connectionLogger = require('../middleware/connectionLogger');
 console.log('Loading commands');
-const loginLimiter = require('../utils/loginLimiter');
+const handleCommand = require('../utils/commands');
 console.log('Loading loginLimiter');
+const loginLimiter = require('../utils/loginLimiter');
 
 module.exports = (socket, req, wss) => {
   const ip = req.socket.remoteAddress;
@@ -31,32 +31,12 @@ module.exports = (socket, req, wss) => {
   if (!wss.usernames) wss.usernames = new Set();
   if (!wss.authenticatedClients) wss.authenticatedClients = new Set();
 
+  socket.blockedUsers = new Set();
+
   if (settings.authentication) {
-    authHandler(
-      socket,
-      req,
-      wss,
-      settings,
-      adminUsers,
-      broadcast,
-      loginLimiter,
-      bannedUsers,
-      connectionLogger,
-      handleCommand
-    );
+    authHandler(socket, req, wss, settings, adminUsers, broadcast, loginLimiter, bannedUsers, connectionLogger, handleCommand);
   } else {
-    unauthHandler(
-      socket,
-      req,
-      wss,
-      settings,
-      bannedUsers,
-      broadcast,
-      generateUsername,
-      clampUsername,
-      connectionLogger,
-      handleCommand
-    );
+    unauthHandler(socket, req, wss, settings, bannedUsers, broadcast, generateUsername, clampUsername, connectionLogger, handleCommand);
   }
 
   socket.on('close', () => {
@@ -69,6 +49,7 @@ module.exports = (socket, req, wss) => {
       saveMessage({ type: 'system', text: leaveText });
     }
   });
+
   socket.on('error', (err) => {
     console.error('WebSocket client error:', err);
   });
