@@ -12,7 +12,7 @@ async def main():
         print("Connected to server.")
         
         await ws.send(json.dumps({
-            "type": "message",
+            "type": "chat",
             "content": "Hello World"
         }))
         
