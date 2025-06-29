@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 console.log('Loading loadSettings');
 const loadSettings = require('../handlers/loadSettings');
 console.log('Loading loadBansAndAdmins');
@@ -32,6 +34,13 @@ module.exports = (socket, req, wss) => {
   if (!wss.authenticatedClients) wss.authenticatedClients = new Set();
 
   socket.blockedUsers = new Set();
+
+  // SESSION TOKEN HOLY SHIT
+  socket.sessionToken = crypto.randomBytes(32).toString('hex');
+  socket.send(JSON.stringify({
+    type: 'session-token',
+    token: socket.sessionToken,
+  }));
 
   if (settings.authentication) {
     authHandler(socket, req, wss, settings, adminUsers, broadcast, loginLimiter, bannedUsers, connectionLogger, handleCommand);

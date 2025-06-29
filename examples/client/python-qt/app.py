@@ -33,6 +33,7 @@ class ChatClient(QWidget):
         self.nicknames = set()
         self.pending_nick = None
         self.anonymous_name = None
+        self.session_token = None
 
         self.msg_input.setEnabled(False)
         self.send_btn.setEnabled(False)
@@ -105,6 +106,8 @@ class ChatClient(QWidget):
         else:
             self.anonymous_name = None
 
+        self.session_token = None
+
         self.disconnect()
         self.keep_running = True
         self.msg_input.setEnabled(False)
@@ -132,8 +135,6 @@ class ChatClient(QWidget):
                 self.update_status(f"Connected to {url}")
                 self.msg_input.setEnabled(True)
                 self.send_btn.setEnabled(True)
-
-                await ws.send(json.dumps({"type": "chat", "content": "/list"}))
 
                 ping_task = asyncio.create_task(self.ping_loop(ws))
 
@@ -166,6 +167,11 @@ class ChatClient(QWidget):
         try:
             data = json.loads(raw_msg)
             mtype = data.get("type")
+
+            if mtype == "session-token":
+                self.session_token = data.get("token")
+                self.append_chat("[Client] Session token received.")
+                return
 
             if mtype == "history":
                 for msg in data.get("messages", []):
@@ -315,11 +321,18 @@ class ChatClient(QWidget):
         if msg.lower().startswith("/nick "):
             self.pending_nick = msg[6:].strip()
 
-        to_send = json.dumps({"type": "chat", "content": msg})
+        to_send = {
+            "type": "chat",
+            "content": msg,
+        }
+        if self.session_token:
+            to_send["token"] = self.session_token
+
+        to_send_json = json.dumps(to_send)
 
         async def send():
             try:
-                await self.websocket.send(to_send)
+                await self.websocket.send(to_send_json)
                 self.msg_input.clear()
             except Exception as e:
                 self.append_chat(f"[Error sending message] {e}")

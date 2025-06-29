@@ -4,7 +4,11 @@ import websockets
 from termcolor import colored
 import sys
 
+session_token = None
+
+
 async def send_loop(ws):
+    global session_token
     loop = asyncio.get_event_loop()
     while True:
         text = await loop.run_in_executor(None, sys.stdin.readline)
@@ -14,12 +18,16 @@ async def send_loop(ws):
                 "type": "chat",
                 "content": text
             }
+            if session_token:
+                message_obj["token"] = session_token
             try:
                 await ws.send(json.dumps(message_obj))
             except Exception as e:
                 print(colored(f"Failed to send message: {e}", "red"))
 
+
 async def recv_loop(ws):
+    global session_token
     async for message in ws:
         try:
             data = json.loads(message)
@@ -29,7 +37,11 @@ async def recv_loop(ws):
 
         msg_type = data.get("type")
 
-        if msg_type == "history":
+        if msg_type == "session-token":
+            session_token = data.get("token")
+            print(colored("[Client] Session token received.", "magenta"))
+
+        elif msg_type == "history":
             print(colored("loaded chat", "cyan"))
             for msg in data.get("messages", []):
                 if msg["type"] == "chat":
@@ -46,11 +58,16 @@ async def recv_loop(ws):
         else:
             print("Unknown message type:", data)
 
+
 async def chat_client():
     uri = "ws://localhost:3000"
-    async with websockets.connect(uri) as websocket:
-        print(colored("Connected to chat server", "cyan"))
-        await asyncio.gather(send_loop(websocket), recv_loop(websocket))
+    try:
+        async with websockets.connect(uri) as websocket:
+            print(colored("Connected to chat server", "cyan"))
+            await asyncio.gather(send_loop(websocket), recv_loop(websocket))
+    except Exception as e:
+        print(colored(f"Connection failed: {e}", "red"))
+
 
 if __name__ == "__main__":
     try:

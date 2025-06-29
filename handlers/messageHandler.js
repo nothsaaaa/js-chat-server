@@ -19,6 +19,14 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
+    if (typeof parsed.token !== 'string' || parsed.token !== socket.sessionToken) {
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: 'Invalid session token.',
+      }));
+      return;
+    }
+
     if (parsed.type !== 'chat' || typeof parsed.content !== 'string') {
       socket.send(JSON.stringify({
         type: 'system',
