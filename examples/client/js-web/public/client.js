@@ -9,6 +9,7 @@
 
   let ws;
   let pingInterval;
+  let sessionToken = null;
 
   const userColors = {};
   const originalTitle = document.title;
@@ -149,6 +150,12 @@
       try {
         const msgObj = JSON.parse(event.data);
 
+        if (msgObj.type === 'session-token') {
+          sessionToken = msgObj.token;
+          addMessage('[Client] Session token received.', 'system');
+          return;
+        }
+
         if (msgObj.type === 'history') {
           messagesDiv.innerHTML = '';
           msgObj.messages.forEach(m => {
@@ -177,6 +184,7 @@
       usernameInput.disabled = false;
 
       clearInterval(pingInterval);
+      sessionToken = null;
     };
 
     ws.onerror = () => {
@@ -192,10 +200,16 @@
     const msg = messageInput.value.trim();
     if (!msg) return;
 
-    ws.send(JSON.stringify({
+    const messagePayload = {
       type: "chat",
       content: msg
-    }));
+    };
+
+    if (sessionToken) {
+      messagePayload.token = sessionToken;
+    }
+
+    ws.send(JSON.stringify(messagePayload));
 
     messageInput.value = '';
     messageInput.focus();
