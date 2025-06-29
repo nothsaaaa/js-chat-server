@@ -2,6 +2,7 @@ import sys
 import asyncio
 import json
 from datetime import datetime
+from urllib.parse import urlparse
 
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QMessageBox, QInputDialog, QCheckBox
@@ -9,6 +10,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6 import uic
 import websockets
+import aiohttp
 
 SERVERS_FILE = "servers.json"
 
@@ -41,7 +43,6 @@ class ChatClient(QWidget):
         self.rem_btn.clicked.connect(self.remove_server)
         self.connect_btn.clicked.connect(self.connect_to_selected_server)
 
-        # Do Not Disturb checkbox
         self.dnd_checkbox = self.findChild(QCheckBox, "dnd_checkbox")
         if self.dnd_checkbox:
             self.dnd_checkbox.stateChanged.connect(self.on_dnd_changed)
@@ -267,9 +268,48 @@ class ChatClient(QWidget):
     def update_status(self, text):
         self.status_label.setText(text)
 
+    async def fetch_server_info(self):
+        if not self.websocket:
+            return
+
+        url = self.server_combo.currentText()
+        if not url:
+            self.append_chat("[Client] No server URL available.")
+            return
+
+        try:
+            parsed = urlparse(url)
+            host = parsed.hostname
+            port = parsed.port
+            if not port:
+                if parsed.scheme == "wss":
+                    port = 443
+                else:
+                    port = 80
+
+            http_url = f"http://{host}:{port}/server-info"
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(http_url) as resp:
+                    if resp.status != 200:
+                        raise Exception(f"HTTP {resp.status}")
+                    info = await resp.json()
+
+            self.append_chat(f"[Client] Server Name: {info.get('serverName', 'N/A')}")
+            self.append_chat(f"[Client] Max Connections: {info.get('totalMaxConnections', 'N/A')}")
+            self.append_chat(f"[Client] Current Online: {info.get('currentOnline', 'N/A')}")
+
+        except Exception as e:
+            self.append_chat(f"[Client] Error fetching server info: {e}")
+
     def send_message(self):
         msg = self.msg_input.text().strip()
         if not msg or not self.websocket:
+            return
+
+        if msg.lower() == "/info":
+            asyncio.run_coroutine_threadsafe(self.fetch_server_info(), self.event_loop)
+            self.msg_input.clear()
             return
 
         if msg.lower().startswith("/nick "):
