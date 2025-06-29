@@ -161,6 +161,10 @@ class ChatClient(QWidget):
             if mtype == "history":
                 for msg in data.get("messages", []):
                     text = msg.get("text", "")
+
+                    if " is now " in text:
+                        continue
+
                     if text.endswith("has joined.") or text.endswith("has left."):
                         username = text.rsplit(' ', 2)[0].strip()
                         if text.endswith("has joined."):
@@ -168,7 +172,11 @@ class ChatClient(QWidget):
                         else:
                             self.remove_member(username)
                         continue
-                    self.display_message(msg)
+
+                    if not msg.get("username"):
+                        self.append_chat(f"[System] {text}")
+                    else:
+                        self.display_message(msg)
 
             elif mtype == "chat":
                 self.display_message(data)
