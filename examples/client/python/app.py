@@ -11,7 +11,7 @@ async def send_loop(ws):
         text = text.strip()
         if text:
             message_obj = {
-                "type": "message",
+                "type": "chat",
                 "content": text
             }
             try:

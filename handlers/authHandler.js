@@ -29,7 +29,7 @@ module.exports = (socket, req, wss, settings, adminUsers, broadcast, loginLimite
 
     if (msg.type === 'ping') return;
 
-    if (msg.type !== 'message' || typeof msg.content !== 'string') {
+    if (msg.type !== 'chat' || typeof msg.content !== 'string') {
       socket.send(JSON.stringify({
         type: 'system',
         text: 'Please authenticate first using /register or /login commands in message content.',

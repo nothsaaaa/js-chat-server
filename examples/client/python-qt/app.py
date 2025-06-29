@@ -133,7 +133,7 @@ class ChatClient(QWidget):
                 self.msg_input.setEnabled(True)
                 self.send_btn.setEnabled(True)
 
-                await ws.send(json.dumps({"type": "message", "content": "/list"}))
+                await ws.send(json.dumps({"type": "chat", "content": "/list"}))
 
                 ping_task = asyncio.create_task(self.ping_loop(ws))
 
@@ -216,7 +216,7 @@ class ChatClient(QWidget):
 
                     if self.websocket:
                         asyncio.run_coroutine_threadsafe(
-                            self.websocket.send(json.dumps({"type": "message", "content": "/list"})),
+                            self.websocket.send(json.dumps({"type": "chat", "content": "/list"})),
                             self.event_loop
                         )
                     return
@@ -315,7 +315,7 @@ class ChatClient(QWidget):
         if msg.lower().startswith("/nick "):
             self.pending_nick = msg[6:].strip()
 
-        to_send = json.dumps({"type": "message", "content": msg})
+        to_send = json.dumps({"type": "chat", "content": msg})
 
         async def send():
             try:

@@ -193,7 +193,7 @@
     if (!msg) return;
 
     ws.send(JSON.stringify({
-      type: "message",
+      type: "chat",
       content: msg
     }));
 

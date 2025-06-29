@@ -95,7 +95,7 @@ wss.on('connection', (clientSocket, req) => {
       try {
         sendToClient(JSON.parse(data));
       } catch {
-        sendToClient({ type: 'message', content: data.toString() });
+        sendToClient({ type: 'chat', content: data.toString() });
       }
     });
 
@@ -135,7 +135,7 @@ wss.on('connection', (clientSocket, req) => {
       return;
     }
 
-    if (message.type !== 'message' || typeof message.content !== 'string') {
+    if (message.type !== 'chat' || typeof message.content !== 'string') {
       sendToClient({ type: 'system', text: 'PROXY: Invalid message structure.' });
       return;
     }
@@ -170,7 +170,7 @@ wss.on('connection', (clientSocket, req) => {
       lastNickChange.set(clientSocket, now);
 
       if (backendSocket && backendSocket.readyState === WebSocket.OPEN) {
-        backendSocket.send(JSON.stringify({ type: 'message', content }));
+        backendSocket.send(JSON.stringify({ type: 'chat', content }));
       }
 
       sendToClient({ type: 'system', text: `PROXY: Username changed to ${newNick}` });

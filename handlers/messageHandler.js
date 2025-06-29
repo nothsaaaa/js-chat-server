@@ -19,7 +19,7 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
-    if (parsed.type !== 'message' || typeof parsed.content !== 'string') {
+    if (parsed.type !== 'chat' || typeof parsed.content !== 'string') {
       socket.send(JSON.stringify({
         type: 'system',
         text: 'Invalid message structure.',
