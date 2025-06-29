@@ -28,6 +28,9 @@ class ChatClient(QWidget):
         self.websocket = None
         self.keep_running = False
         self.username = None
+        self.nicknames = set()
+        self.pending_nick = None
+        self.anonymous_name = None
 
         self.msg_input.setEnabled(False)
         self.send_btn.setEnabled(False)
@@ -86,7 +89,12 @@ class ChatClient(QWidget):
         if not ok:
             return
 
-        self.username = username
+        self.username = username.strip() or None
+        self.nicknames.clear()
+        if self.username:
+            self.nicknames.add(self.username)
+        else:
+            self.anonymous_name = None
 
         self.disconnect()
         self.keep_running = True
@@ -149,6 +157,7 @@ class ChatClient(QWidget):
         try:
             data = json.loads(raw_msg)
             mtype = data.get("type")
+
             if mtype == "history":
                 for msg in data.get("messages", []):
                     text = msg.get("text", "")
@@ -163,8 +172,10 @@ class ChatClient(QWidget):
 
             elif mtype == "chat":
                 self.display_message(data)
+
             elif mtype == "system":
                 text = data.get("text", "")
+
                 if text.startswith("Online users:"):
                     members = [m.strip() for m in text[len("Online users:"):].split(",")]
                     self.update_members(members)
@@ -180,7 +191,20 @@ class ChatClient(QWidget):
                     self.remove_member(username)
                     return
 
-                self.display_system_message(text)
+                if " is now " in text:
+                    old_name, new_name = map(str.strip, text.split(" is now ", 1))
+                    self.remove_member(old_name)
+                    self.add_member(new_name)
+
+                    if self.websocket:
+                        asyncio.run_coroutine_threadsafe(
+                            self.websocket.send(json.dumps({"type": "message", "content": "/list"})),
+                            self.event_loop
+                        )
+                    return
+
+                self.append_chat(text)
+
             else:
                 self.append_chat(f"[Unknown message type] {raw_msg}")
         except Exception as e:
@@ -212,9 +236,9 @@ class ChatClient(QWidget):
         time_str = dt.strftime("%H:%M:%S")
         self.append_chat(f"[{time_str}] <{username}> {text}")
 
-    def display_system_message(self, text):
-        time_str = datetime.now().strftime("%H:%M:%S")
-        self.append_chat(f"[{time_str}] * {text}")
+        if not self.isActiveWindow() and self.websocket and self.username:
+            if any(name.lower() in text.lower() for name in self.nicknames):
+                self.show_notification(f"Mentioned by {username}", text)
 
     def update_members(self, members):
         self.members_list.clear()
@@ -231,6 +255,9 @@ class ChatClient(QWidget):
         if not msg or not self.websocket:
             return
 
+        if msg.lower().startswith("/nick "):
+            self.pending_nick = msg[6:].strip()
+
         to_send = json.dumps({"type": "message", "content": msg})
 
         async def send():
@@ -245,6 +272,13 @@ class ChatClient(QWidget):
     def process_asyncio_events(self):
         self.event_loop.call_soon(self.event_loop.stop)
         self.event_loop.run_forever()
+
+    def show_notification(self, title, message):
+        try:
+            from plyer import notification
+            notification.notify(title=title, message=message, app_name="Chat Client")
+        except Exception as e:
+            print("Notification error:", e)
 
     def closeEvent(self, event):
         self.disconnect()
