@@ -57,10 +57,21 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
   }
 
   if (msg === '/list') {
-    const onlineUsers = Array.from(wss.usernames);
+    const onlineUsers = Array.from(wss.usernames).map(username => {
+      if (socket.blockedUsers && socket.blockedUsers[username]) {
+        const blockedAt = socket.blockedUsers[username];
+        if (Date.now() - blockedAt > BLOCK_DURATION_MS) {
+          delete socket.blockedUsers[username];
+          return username;
+        }
+        return `[B]${username}`;
+      }
+      return username;
+    });
     socket.send(JSON.stringify({ type: 'system', text: `Online users: ${onlineUsers.join(', ')}` }));
     return true;
   }
+
 
   if (msg.startsWith('/kick')) {
     if (!isAuth || !socket.isAdmin) {
