@@ -185,6 +185,7 @@ class ChatClient(QWidget):
                         self.append_chat(f"[System] {text}")
                     else:
                         self.display_message(msg)
+                self.append_chat(f"[Client] ##### History #####\n")
 
             elif mtype == "chat":
                 self.display_message(data)
