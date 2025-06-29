@@ -1,3 +1,9 @@
+// BROKEN
+// BROKEN
+// BROKEN
+// BROKEN
+// BROKEN
+
 const http = require('http');
 const WebSocket = require('ws');
 const url = require('url');
@@ -6,11 +12,11 @@ const validateUsername = require('../handlers/validateUsername');
 const asettings = require('../settings.json');
 const lastNickChange = new Map();
 
-const PORT = 3000;
+const PORT = 3001;
 
 const backendServers = {
-  main: 'ws://localhost:3001',
-  testing: 'ws://localhost:3002',
+  main: 'ws://localhost:3002',
+  testing: 'ws://localhost:3003',
 };
 
 const settings = {
