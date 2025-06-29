@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QMessageBox, QInputDialog
+    QApplication, QWidget, QMessageBox, QInputDialog, QCheckBox
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6 import uic
@@ -41,12 +41,20 @@ class ChatClient(QWidget):
         self.rem_btn.clicked.connect(self.remove_server)
         self.connect_btn.clicked.connect(self.connect_to_selected_server)
 
+        # Do Not Disturb checkbox
+        self.dnd_checkbox = self.findChild(QCheckBox, "dnd_checkbox")
+        if self.dnd_checkbox:
+            self.dnd_checkbox.stateChanged.connect(self.on_dnd_changed)
+
         self.event_loop = asyncio.new_event_loop()
         self.timer = QTimer()
         self.timer.timeout.connect(self.process_asyncio_events)
         self.timer.start(50)
 
         self.show()
+
+    def on_dnd_changed(self):
+        state = "ON" if self.dnd_checkbox.isChecked() else "OFF"
 
     def load_servers(self):
         try:
@@ -282,6 +290,8 @@ class ChatClient(QWidget):
         self.event_loop.run_forever()
 
     def show_notification(self, title, message):
+        if hasattr(self, "dnd_checkbox") and self.dnd_checkbox.isChecked():
+            return
         try:
             from plyer import notification
             notification.notify(title=title, message=message, app_name="Chat Client")

@@ -100,6 +100,13 @@
       </widget>
      </item>
      <item>
+      <widget class="QCheckBox" name="dnd_checkbox">
+       <property name="text">
+        <string>Do Not Disturb</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QLabel" name="label_members">
        <property name="text">
         <string>Members:</string>
