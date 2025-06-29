@@ -14,6 +14,23 @@ import aiohttp
 
 SERVERS_FILE = "servers.json"
 
+def sendmsg(self, message="/list"):
+    if not self.websocket:
+        return
+
+    async def send_once():
+
+        to_send = {
+            "type": "chat",
+            "content": message,
+        }
+        if self.session_token:
+            to_send["token"] = self.session_token
+        await self.websocket.send(json.dumps(to_send))
+
+    asyncio.run_coroutine_threadsafe(send_once(), self.event_loop)
+
+
 class ChatClient(QWidget):
     def __init__(self):
         super().__init__()
@@ -137,6 +154,7 @@ class ChatClient(QWidget):
                 self.send_btn.setEnabled(True)
 
                 ping_task = asyncio.create_task(self.ping_loop(ws))
+                sendmsg(self)
 
                 async for message in ws:
                     self.handle_message(message)
@@ -221,8 +239,16 @@ class ChatClient(QWidget):
                     self.add_member(new_name)
 
                     if self.websocket:
+                        payload = {
+                            "type": "chat",
+                            "content": "/list",
+                        }
+
+                        if self.session_token:
+                            payload["token"] = self.session_token
+
                         asyncio.run_coroutine_threadsafe(
-                            self.websocket.send(json.dumps({"type": "chat", "content": "/list"})),
+                            self.websocket.send(json.dumps(payload)),
                             self.event_loop
                         )
                     return
