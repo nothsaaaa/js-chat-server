@@ -1,7 +1,7 @@
 # WebSocket Chat Client Documentation
 
 This document explains how to create a WebSocket client to connect and communicate with the chat server.
-Example clients in examples/clients/
+Example clients are in `examples/clients/`.
 
 ---
 
@@ -12,6 +12,7 @@ The chat server uses a WebSocket connection to handle real-time messaging. Clien
 * Connect with an optional username
 * Receive chat and system messages
 * Send chat messages and commands
+* Maintain connection with periodic pings (OPTIONAL)
 
 ---
 
@@ -30,6 +31,19 @@ The chat server uses a WebSocket connection to handle real-time messaging. Clien
   ```
 
 * If no username is provided, the server assigns a random anonymous username.
+
+* **Session Token**
+
+  Upon connection, the server generates and sends a unique session token to your client in a message like this:
+
+  ```json
+  {
+    "type": "session-token",
+    "token": "<your-session-token>"
+  }
+  ```
+
+  Your client **must** save this token and include it in **every** message you send to the server (except ping messages). Messages without the correct token will be rejected.
 
 ---
 
@@ -56,7 +70,7 @@ The server sends and expects JSON messages with the following types:
   }
   ```
 
-* **`chat`**: Regular chat message from a user. This is outgoing, after the server processed it (including things like filtering, commands, etc.)
+* **`chat`**: Regular chat message from a user, after processing by the server (including filtering, commands, etc.)
 
   ```json
   {
@@ -80,37 +94,55 @@ The server sends and expects JSON messages with the following types:
 
 ## Sending Messages to the Server
 
+* **General requirements**
+
+  * All outgoing messages **must** be JSON strings with the following common structure:
+
+    ```json
+    {
+      "type": "<message-type>",
+      "token": "<your-session-token>",
+      // other fields depending on type
+    }
+    ```
+
+  * The server validates the `token` field against your session; messages with missing or invalid tokens are rejected.
+
 * **Chat message**
 
-  Send a JSON string representing an object with `type: "message"` and the message content in the `content` field.
-
-  Example:
+  To send a chat message (including commands starting with `/`), send:
 
   ```js
   ws.send(JSON.stringify({
-    type: "message",
+    type: "chat",
+    token: "<your-session-token>",
     content: "Hello everyone!"
   }));
   ```
 
+  * The `content` field must be a string.
+  * Messages longer than 2000 characters or 5KB in UTF-8 size will be rejected.
+  * Messages sent too frequently (more than the server's rate limit) will be rejected.
+  * Commands like `/nick newname` or `/help` are handled internally by the server when sent as `content` in a `"chat"` message.
+
 * **Ping**
 
-  This is for web browsers which don't send keepalive requests by default.
-  If you don't send a ping, the connection may close when idle.
+  To keep the connection alive (especially in browsers), send a ping message every \~25 seconds:
 
-  The ping message is a JSON string like this:
-
-  ```json
-  { "type": "ping" }
+  ```js
+  ws.send(JSON.stringify({
+    type: "ping"
+  }));
   ```
 
-  The server ignores this message; clients typically send it every 25 seconds.
+  * The server ignores this message but uses it to keep the connection open.
+  * The server does **not** require a token for ping messages.
 
 ---
 
 ### Notes
 
-* Messages **must** be sent as strings, but chat messages should be JSON strings with the structure shown above.
-* Nickname changes and commands remain as plain string messages starting with `/`.
+* Messages **must** be valid JSON strings.
+* Sending malformed JSON or missing the `token` (except on ping) will cause the server to send an error system message.
 * The server broadcasts messages in JSON format to all connected clients.
-* Sending invalid or malformed JSON will result in an error message from the server.
+* Your client should listen for `"history"` on connection and `"chat"` and `"system"` messages during the session.
