@@ -11,6 +11,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6 import uic
 import websockets
 import aiohttp
+from plyer import notification
 
 SERVERS_FILE = "servers.json"
 
@@ -373,7 +374,6 @@ class ChatClient(QWidget):
         if hasattr(self, "dnd_checkbox") and self.dnd_checkbox.isChecked():
             return
         try:
-            from plyer import notification
             notification.notify(title=title, message=message, app_name="Chat Client")
         except Exception as e:
             print("Notification error:", e)
