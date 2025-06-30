@@ -1,5 +1,6 @@
 # js-chat-server
 lightweight chatserver written in javascript
+possibly the most complete websocket chatserver
 
 ---
 
