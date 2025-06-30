@@ -1,2 +1,2 @@
-python3 app.py
-# for windows bc its weird about directories
+#!/bin/sh
+nohup python3 app.py > app.log 2>&1 &
