@@ -27,6 +27,7 @@ The server is a WebSocket server. It allows multiple clients to:
 
 ## Community Clients
 * [Python QT6 Client](https://github.com/nothsaaaa/js-chat-server/tree/master/examples/client/python-qt)
+
 Open a pull request to add your client's repo to the list.
 
 --- 
