@@ -18,6 +18,7 @@ const defaultSettings = {
   serverName: "My Chat Server",
   port: 3000,
   motd: "Welcome to the chat! Be respectful and have fun.",
+  uploadUseragentsToCensus: true,
 };
 
 

@@ -8,3 +8,5 @@ multiplexer/backends.json
 _oldchat.db
 useragent_graph.py
 useragents.json
+uploader.js
+global_useragents.json
