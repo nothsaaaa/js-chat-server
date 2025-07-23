@@ -22,9 +22,15 @@ console.log('Loading commands');
 const handleCommand = require('../utils/commands');
 console.log('Loading loginLimiter');
 const loginLimiter = require('../utils/loginLimiter');
+console.log('Loading logUserAgent');
+const logUserAgent = require('../utils/logUserAgent');
+
 
 module.exports = (socket, req, wss) => {
   const ip = req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+  logUserAgent(ip, userAgent);
+
   const settings = loadSettings();
   const { bannedUsers, adminUsers } = loadBansAndAdmins();
 
