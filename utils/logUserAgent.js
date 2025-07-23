@@ -16,11 +16,11 @@ function loadSettings() {
   }
 }
 
-async function logUserAgent(ip, userAgent) {
+async function logUserAgent(userAgent) {
   const settings = loadSettings();
 
   const timestamp = new Date().toISOString();
-  const entry = { ip, userAgent, timestamp };
+  const entry = { userAgent, timestamp };
 
   let existing = [];
 

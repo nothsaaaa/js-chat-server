@@ -29,7 +29,7 @@ const logUserAgent = require('../utils/logUserAgent');
 module.exports = (socket, req, wss) => {
   const ip = req.socket.remoteAddress;
   const userAgent = req.headers['user-agent'] || 'Unknown';
-  logUserAgent(ip, userAgent);
+  logUserAgent(userAgent);
 
   const settings = loadSettings();
   const { bannedUsers, adminUsers } = loadBansAndAdmins();
