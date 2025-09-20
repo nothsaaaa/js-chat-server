@@ -1,8 +1,6 @@
-// BROKEN
-// BROKEN
-// BROKEN
-// BROKEN
-// BROKEN
+// needs work
+// good example, but partially dysfunctional
+// if you make a better multiplexer, please contribute!
 
 const http = require('http');
 const WebSocket = require('ws');
@@ -12,11 +10,11 @@ const validateUsername = require('../handlers/validateUsername');
 const asettings = require('../settings.json');
 const lastNickChange = new Map();
 
-const PORT = 3001;
+const PORT = 3000;
 
 const backendServers = {
-  main: 'ws://localhost:3002',
-  testing: 'ws://localhost:3003',
+  main: 'ws://localhost:3001',
+  testing: 'ws://localhost:3002',
 };
 
 const settings = {

@@ -20,7 +20,6 @@ def sendmsg(self, message="/list"):
         return
 
     async def send_once():
-
         to_send = {
             "type": "chat",
             "content": message,
@@ -155,7 +154,6 @@ class ChatClient(QWidget):
                 self.send_btn.setEnabled(True)
 
                 ping_task = asyncio.create_task(self.ping_loop(ws))
-                sendmsg(self)
 
                 async for message in ws:
                     self.handle_message(message)
@@ -213,6 +211,19 @@ class ChatClient(QWidget):
                         self.display_message(msg)
                 self.append_chat(f"[Client] ##### History #####\n")
 
+                if self.websocket:
+                    payload = {
+                        "type": "chat",
+                        "content": "/list",
+                    }
+                    if self.session_token:
+                        payload["token"] = self.session_token
+                    asyncio.run_coroutine_threadsafe(
+                        self.websocket.send(json.dumps(payload)),
+                        self.event_loop
+                    )
+                return
+
             elif mtype == "chat":
                 self.display_message(data)
 
@@ -244,7 +255,6 @@ class ChatClient(QWidget):
                             "type": "chat",
                             "content": "/list",
                         }
-
                         if self.session_token:
                             payload["token"] = self.session_token
 
