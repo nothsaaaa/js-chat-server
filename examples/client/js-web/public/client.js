@@ -13,7 +13,7 @@
 
   const userColors = {};
   const originalTitle = document.title;
-  const serverIP = "147.185.221.28:61429";
+  const serverIP = "localhost:3000";
   let windowFocused = true;
   let newMessagesWhileUnfocused = false;
 

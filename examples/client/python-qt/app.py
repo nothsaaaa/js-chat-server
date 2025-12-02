@@ -40,7 +40,7 @@ class ChatClient(QWidget):
 
         self.servers = self.load_servers()
         if not self.servers:
-            self.servers = ["ws://147.185.221.28:61429"]
+            self.servers = ["ws://localhost:3000"]
 
         self.server_combo.addItems(self.servers)
 
