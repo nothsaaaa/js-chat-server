@@ -29,7 +29,7 @@ class WebRTCSFU {
 
   getParticipantList() {
     return Array.from(this.participants.entries()).map(([socket, data]) => ({
-      username: data.username,
+      username: socket.username,
       mediaTypes: Array.from(data.mediaTypes),
     }));
   }
@@ -91,7 +91,6 @@ class WebRTCSFU {
     }
 
     this.participants.set(socket, {
-      username: socket.username,
       mediaTypes: mediaTypes,
     });
 
@@ -129,24 +128,24 @@ class WebRTCSFU {
       return;
     }
 
-    const participantData = this.participants.get(socket);
+    const username = socket.username;
     this.participants.delete(socket);
     this.pendingIceCandidates.delete(socket);
 
     this.broadcastToParticipants({
       type: 'webrtc-peer-left',
-      username: participantData.username,
+      username: username,
     }, socket);
 
     const leaveMsg = {
       type: 'system',
-      text: `${participantData.username} left voice chat`,
+      text: `${username} left voice chat`,
     };
     
     this.broadcastToAll(leaveMsg);
     saveMessage(leaveMsg);
 
-    console.log(`[WEBRTC] ${participantData.username} left voice chat (${this.getParticipantCount()}/${this.getMaxParticipants()})`);
+    console.log(`[WEBRTC] ${username} left voice chat (${this.getParticipantCount()}/${this.getMaxParticipants()})`);
   }
 
   handleOffer(socket, data) {
