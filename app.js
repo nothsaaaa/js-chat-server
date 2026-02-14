@@ -18,10 +18,24 @@ const defaultSettings = {
   serverName: "My Chat Server",
   port: 3000,
   motd: "Welcome to the chat! Be respectful and have fun.",
-  heartbeatInterval: 30000, //client must ping within this interval
-  heartbeatTimeout: 35000,
+  heartbeatInterval: 30000, //client must ping within this interval (30 seconds)
+  heartbeatTimeout: 35000, //server disconnects if no ping received within this time (35 seconds)
+  webrtc: {
+    enabled: true, //enable WebRTC
+    maxParticipants: 8, //maximum users in voice chat simultaneously
+    allowVideo: false, //allow video streams
+    allowScreenShare: false, //allow screen sharing
+    forceRelay: true, //force all traffic through TURN (disable peer-to-peer)
+  },
 };
 
+// it should be duly noted i do not know how to properly use webrtc
+// to me, this is an abomination. i am sorry.
+// i dont know if webrtc can be used anywhere other than... web.
+// if it cannot this might be removed
+
+// TODO: update serverinfo endpoint to mention webrtc things and what is supported
+// some clients could auto adjust for this (like my wip one)
 
 if (!fs.existsSync(settingsPath)) {
   fs.writeFileSync(settingsPath, JSON.stringify(defaultSettings, null, 2));
@@ -45,6 +59,9 @@ const wss = new WebSocket.Server({
   noServer: true,
   perMessageDeflate: false  // Disable deflate to avoid RSV issues
 });
+
+const initWebRTC = require('./handlers/webrtcHandler');
+initWebRTC(wss, settings);
 
 server.on('request', (req, res) => {
   if (!serverInfoHandler(req, res, wss, settings)) {

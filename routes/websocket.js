@@ -81,6 +81,10 @@ module.exports = (socket, req, wss) => {
       clearInterval(socket.heartbeatTimer);
     }
     
+    if (wss.webrtcSFU) {
+      wss.webrtcSFU.handleDisconnect(socket);
+    }
+    
     if (socket.username) {
       connectionLogger('LEAVE', socket.username);
       wss.usernames.delete(socket.username);

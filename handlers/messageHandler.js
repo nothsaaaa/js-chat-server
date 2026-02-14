@@ -27,6 +27,54 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
+    if (parsed.type && parsed.type.startsWith('webrtc-')) {
+      const sfu = wss.webrtcSFU;
+      
+      if (!sfu) {
+        socket.send(JSON.stringify({
+          type: 'webrtc-error',
+          error: 'WebRTC not initialized',
+        }));
+        return;
+      }
+
+      if (typeof parsed.token !== 'string' || parsed.token !== socket.sessionToken) {
+        socket.send(JSON.stringify({
+          type: 'webrtc-error',
+          error: 'Invalid session token',
+        }));
+        return;
+      }
+
+      switch (parsed.type) {
+        case 'webrtc-join':
+          sfu.handleJoinVoice(socket, parsed);
+          break;
+        case 'webrtc-leave':
+          sfu.handleLeaveVoice(socket);
+          break;
+        case 'webrtc-offer':
+          sfu.handleOffer(socket, parsed);
+          break;
+        case 'webrtc-answer':
+          sfu.handleAnswer(socket, parsed);
+          break;
+        case 'webrtc-ice-candidate':
+          sfu.handleIceCandidate(socket, parsed);
+          break;
+        case 'webrtc-media-change':
+          sfu.handleMediaChange(socket, parsed);
+          break;
+        default:
+          socket.send(JSON.stringify({
+            type: 'webrtc-error',
+            error: 'Unknown WebRTC message type',
+          }));
+      }
+      
+      return;
+    }
+
     if (typeof parsed.token !== 'string' || parsed.token !== socket.sessionToken) {
       socket.send(JSON.stringify({
         type: 'system',
