@@ -596,17 +596,6 @@ ws.send(JSON.stringify({
 The server will buffer these candidates and flush them after the answer is relayed, preventing race conditions.
 
 
-### Complete WebRTC Example
-
-
-See the included `webrtc-demo-client.html` for a full working implementation with:
-- Joining/leaving voice chat
-- Peer connection management
-- Video/audio toggling
-- Participant UI
-- Error handling
-
-
 ---
 
 
