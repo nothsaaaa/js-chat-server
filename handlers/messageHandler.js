@@ -16,6 +16,14 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
     }
 
     if (parsed.type === 'ping') {
+      socket.lastHeartbeat = Date.now();
+      socket.isAlive = true;
+      
+      socket.send(JSON.stringify({ 
+        type: 'pong',
+        timestamp: socket.lastHeartbeat,
+      }));
+      
       return;
     }
 

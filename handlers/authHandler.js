@@ -27,7 +27,17 @@ module.exports = (socket, req, wss, settings, adminUsers, broadcast, loginLimite
       return messageHandler(rawMsg);
     }
 
-    if (msg.type === 'ping') return;
+    if (msg.type === 'ping') {
+      socket.lastHeartbeat = Date.now();
+      socket.isAlive = true;
+      
+      socket.send(JSON.stringify({ 
+        type: 'pong',
+        timestamp: socket.lastHeartbeat,
+      }));
+      
+      return;
+    }
 
     if (msg.type !== 'chat' || typeof msg.content !== 'string') {
       socket.send(JSON.stringify({

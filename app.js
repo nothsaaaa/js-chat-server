@@ -18,6 +18,8 @@ const defaultSettings = {
   serverName: "My Chat Server",
   port: 3000,
   motd: "Welcome to the chat! Be respectful and have fun.",
+  heartbeatInterval: 30000, //client must ping within this interval
+  heartbeatTimeout: 35000,
 };
 
 

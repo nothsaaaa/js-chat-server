@@ -42,6 +42,34 @@ module.exports = (socket, req, wss) => {
     token: socket.sessionToken,
   }));
 
+  socket.isAlive = true;
+  socket.lastHeartbeat = Date.now();
+  
+  const heartbeatTimeout = settings.heartbeatTimeout || 35000;
+  const heartbeatInterval = settings.heartbeatInterval || 30000;
+  
+  socket.send(JSON.stringify({
+    type: 'heartbeat-config',
+    interval: heartbeatInterval,
+    timeout: heartbeatTimeout,
+  }));
+  
+  socket.heartbeatTimer = setInterval(() => {
+    const timeSinceLastBeat = Date.now() - socket.lastHeartbeat;
+    
+    if (timeSinceLastBeat > heartbeatTimeout) {
+      console.log(`[HEARTBEAT TIMEOUT] Disconnecting ${socket.username || 'unauthenticated'} - No ping for ${timeSinceLastBeat}ms`);
+      
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: 'Disconnected: Heartbeat timeout (no ping received)',
+      }));
+      
+      socket.close(1008, 'Heartbeat timeout');
+      return;
+    }
+  }, heartbeatInterval);
+
   if (settings.authentication) {
     authHandler(socket, req, wss, settings, adminUsers, broadcast, loginLimiter, bannedUsers, connectionLogger, handleCommand);
   } else {
@@ -49,6 +77,10 @@ module.exports = (socket, req, wss) => {
   }
 
   socket.on('close', () => {
+    if (socket.heartbeatTimer) {
+      clearInterval(socket.heartbeatTimer);
+    }
+    
     if (socket.username) {
       connectionLogger('LEAVE', socket.username);
       wss.usernames.delete(socket.username);
