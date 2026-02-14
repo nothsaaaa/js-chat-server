@@ -25,7 +25,7 @@ const defaultSettings = {
     maxParticipants: 8, //maximum users in voice chat simultaneously
     allowVideo: false, //allow video streams
     allowScreenShare: false, //allow screen sharing
-    forceRelay: true, //force all traffic through TURN (disable peer-to-peer)
+    forceRelay: true, //force all traffic through TURN (disable peer-to-peer and prevent ip leaks)
   },
 };
 
