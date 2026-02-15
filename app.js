@@ -21,11 +21,11 @@ const defaultSettings = {
   heartbeatInterval: 30000, //client must ping within this interval (30 seconds)
   heartbeatTimeout: 35000, //server disconnects if no ping received within this time (35 seconds)
   webrtc: {
-    enabled: true, //enable WebRTC
+    enabled: false, //enable WebRTC
     maxParticipants: 8, //maximum users in voice chat simultaneously
     allowVideo: false, //allow video streams
     allowScreenShare: false, //allow screen sharing
-    forceRelay: true, //force all traffic through TURN (disable peer-to-peer and prevent ip leaks)
+    forceRelay: true, //force all traffic through TURN; prevents ip leaks
   },
 };
 
