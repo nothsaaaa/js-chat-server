@@ -1,7 +1,5 @@
 # Quickstart Guide
 
-Build a working chat client in 5 minutes.
-
 ## Key Concepts
 
 ### 1. Connection Flow
