@@ -29,7 +29,7 @@ npm start
 
 Server runs on `ws://localhost:3000` by default.
 
-For client examples, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
+For client examples, see [docs/EXAMPLES.md](docs/EXAMPLES.md).
 
 ---
 
