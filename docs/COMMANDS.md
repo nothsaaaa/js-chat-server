@@ -4,6 +4,21 @@ Chat commands available on js-chat-server.
 
 ---
 
+Generally, mentions are done by saying the exact username.  
+Username: Arun440
+
+| Message | Correct |
+| :--- | :---: |
+| Arun440 Hey check out this cool article I found http://... | Yes |
+| yea i heard Arun440 was working on it | Yes |
+| @Arun440 im still waiting, eta? | No |
+| Arun440: yea i was working on that yesterday | No |
+
+The last two examples are Discord-like and IRC-like.
+
+
+---
+
 ## How Commands Work
 
 Send commands as chat messages starting with `/`:
