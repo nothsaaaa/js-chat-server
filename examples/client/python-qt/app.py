@@ -3,10 +3,7 @@ import asyncio
 import json
 from datetime import datetime
 from urllib.parse import urlparse
-
-from PyQt6.QtWidgets import (
-    QApplication, QWidget, QMessageBox, QInputDialog, QCheckBox
-)
+from PyQt6.QtWidgets import QApplication, QWidget, QMessageBox, QInputDialog, QCheckBox
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6 import uic
 import websockets
@@ -15,35 +12,15 @@ from plyer import notification
 
 SERVERS_FILE = "servers.json"
 
-def sendmsg(self, message="/list"):
-    if not self.websocket:
-        return
-
-    async def send_once():
-        to_send = {
-            "type": "chat",
-            "content": message,
-        }
-        if self.session_token:
-            to_send["token"] = self.session_token
-        await self.websocket.send(json.dumps(to_send))
-
-    asyncio.run_coroutine_threadsafe(send_once(), self.event_loop)
-
-
 class ChatClient(QWidget):
     def __init__(self):
         super().__init__()
         uic.loadUi("ui.ui", self)
-
         self.setWindowTitle("Chat Client")
-
         self.servers = self.load_servers()
         if not self.servers:
             self.servers = ["ws://localhost:3000"]
-
         self.server_combo.addItems(self.servers)
-
         self.websocket = None
         self.keep_running = False
         self.username = None
@@ -51,29 +28,23 @@ class ChatClient(QWidget):
         self.pending_nick = None
         self.anonymous_name = None
         self.session_token = None
-
+        self.heartbeat_interval = None
+        self.ping_task = None
         self.msg_input.setEnabled(False)
         self.send_btn.setEnabled(False)
-
         self.msg_input.returnPressed.connect(self.send_message)
         self.send_btn.clicked.connect(self.send_message)
         self.add_btn.clicked.connect(self.add_server)
         self.rem_btn.clicked.connect(self.remove_server)
         self.connect_btn.clicked.connect(self.connect_to_selected_server)
-
         self.dnd_checkbox = self.findChild(QCheckBox, "dnd_checkbox")
         if self.dnd_checkbox:
             self.dnd_checkbox.stateChanged.connect(self.on_dnd_changed)
-
         self.event_loop = asyncio.new_event_loop()
         self.timer = QTimer()
         self.timer.timeout.connect(self.process_asyncio_events)
         self.timer.start(50)
-
         self.show()
-
-    def on_dnd_changed(self):
-        state = "ON" if self.dnd_checkbox.isChecked() else "OFF"
 
     def load_servers(self):
         try:
@@ -111,20 +82,17 @@ class ChatClient(QWidget):
         if not url:
             QMessageBox.warning(self, "Warning", "Select or add a server first.")
             return
-
         username, ok = QInputDialog.getText(self, "Username", "Enter your username (optional):")
         if not ok:
             return
-
         self.username = username.strip() or None
         self.nicknames.clear()
         if self.username:
             self.nicknames.add(self.username)
         else:
             self.anonymous_name = None
-
         self.session_token = None
-
+        self.heartbeat_interval = None
         self.disconnect()
         self.keep_running = True
         self.msg_input.setEnabled(False)
@@ -135,6 +103,9 @@ class ChatClient(QWidget):
 
     def disconnect(self):
         self.keep_running = False
+        if self.ping_task:
+            self.ping_task.cancel()
+            self.ping_task = None
         if self.websocket:
             asyncio.run_coroutine_threadsafe(self.websocket.close(), self.event_loop)
         self.websocket = None
@@ -152,51 +123,55 @@ class ChatClient(QWidget):
                 self.update_status(f"Connected to {url}")
                 self.msg_input.setEnabled(True)
                 self.send_btn.setEnabled(True)
-
-                ping_task = asyncio.create_task(self.ping_loop(ws))
-
                 async for message in ws:
                     self.handle_message(message)
                     if not self.keep_running:
                         break
-
-                ping_task.cancel()
         except Exception as e:
             self.append_chat(f"[Error] Connection failed: {e}")
-            self.update_status("Disconnected")
-            self.msg_input.setEnabled(False)
-            self.send_btn.setEnabled(False)
         finally:
             self.websocket = None
-            self.update_status("Disconnected")
             self.msg_input.setEnabled(False)
             self.send_btn.setEnabled(False)
+            self.update_status("Disconnected")
 
     async def ping_loop(self, ws):
-        while self.keep_running:
+        while self.keep_running and ws == self.websocket:
+            if not self.session_token or not self.heartbeat_interval:
+                await asyncio.sleep(1)
+                continue
             try:
-                await ws.send(json.dumps({"type": "ping"}))
-            except:
+                await ws.send(json.dumps({"type": "ping", "token": self.session_token}))
+            except Exception as e:
+                self.append_chat(f"[Heartbeat error] {e}")
                 break
-            await asyncio.sleep(25)
+            await asyncio.sleep(self.heartbeat_interval / 1000.0)
 
     def handle_message(self, raw_msg):
         try:
             data = json.loads(raw_msg)
             mtype = data.get("type")
 
+            if mtype == "pong":
+                return
+
             if mtype == "session-token":
                 self.session_token = data.get("token")
                 self.append_chat("[Client] Session token received.")
                 return
 
+            if mtype == "heartbeat-config":
+                self.heartbeat_interval = data.get("interval", 30000)
+                self.append_chat(f"[Client] Heartbeat interval: {self.heartbeat_interval} ms")
+                if self.websocket and (not self.ping_task or self.ping_task.done()):
+                    self.ping_task = asyncio.run_coroutine_threadsafe(self.ping_loop(self.websocket), self.event_loop)
+                return
+
             if mtype == "history":
                 for msg in data.get("messages", []):
                     text = msg.get("text", "")
-
                     if " is now " in text:
                         continue
-
                     if text.endswith("has joined.") or text.endswith("has left."):
                         username = text.rsplit(' ', 2)[0].strip()
                         if text.endswith("has joined."):
@@ -204,70 +179,51 @@ class ChatClient(QWidget):
                         else:
                             self.remove_member(username)
                         continue
-
                     if not msg.get("username"):
                         self.append_chat(f"[System] {text}")
                     else:
                         self.display_message(msg)
-                self.append_chat(f"[Client] ##### History #####\n")
-
+                self.append_chat("[Client] ##### History #####\n")
                 if self.websocket:
-                    payload = {
-                        "type": "chat",
-                        "content": "/list",
-                    }
+                    payload = {"type": "chat", "content": "/list"}
                     if self.session_token:
                         payload["token"] = self.session_token
-                    asyncio.run_coroutine_threadsafe(
-                        self.websocket.send(json.dumps(payload)),
-                        self.event_loop
-                    )
+                    asyncio.run_coroutine_threadsafe(self.websocket.send(json.dumps(payload)), self.event_loop)
                 return
 
-            elif mtype == "chat":
+            if mtype == "chat":
                 self.display_message(data)
+                return
 
-            elif mtype == "system":
+            if mtype == "system":
                 text = data.get("text", "")
-
                 if text.startswith("Online users:"):
                     members = [m.strip() for m in text[len("Online users:"):].split(",")]
                     self.update_members(members)
                     return
-
                 if text.endswith("has joined."):
                     username = text[:-len("has joined.")].strip()
                     self.add_member(username)
                     return
-
                 if text.endswith("has left."):
                     username = text[:-len("has left.")].strip()
                     self.remove_member(username)
                     return
-
                 if " is now " in text:
                     old_name, new_name = map(str.strip, text.split(" is now ", 1))
                     self.remove_member(old_name)
                     self.add_member(new_name)
-
                     if self.websocket:
-                        payload = {
-                            "type": "chat",
-                            "content": "/list",
-                        }
+                        payload = {"type": "chat", "content": "/list"}
                         if self.session_token:
                             payload["token"] = self.session_token
-
-                        asyncio.run_coroutine_threadsafe(
-                            self.websocket.send(json.dumps(payload)),
-                            self.event_loop
-                        )
+                        asyncio.run_coroutine_threadsafe(self.websocket.send(json.dumps(payload)), self.event_loop)
                     return
-
                 self.append_chat(text)
+                return
 
-            else:
-                self.append_chat(f"[Unknown message type] {raw_msg}")
+            self.append_chat(f"[Unknown message type] {raw_msg}")
+
         except Exception as e:
             self.append_chat(f"[Error parsing message] {raw_msg} ({e})")
 
@@ -286,6 +242,10 @@ class ChatClient(QWidget):
     def get_members(self):
         return [self.members_list.item(i).text() for i in range(self.members_list.count())]
 
+    def update_members(self, members):
+        self.members_list.clear()
+        self.members_list.addItems(members)
+
     def display_message(self, msg):
         username = msg.get("username", "Unknown")
         text = msg.get("text", "")
@@ -296,14 +256,9 @@ class ChatClient(QWidget):
             dt = datetime.now()
         time_str = dt.strftime("%H:%M:%S")
         self.append_chat(f"[{time_str}] <{username}> {text}")
-
         if not self.isActiveWindow() and self.websocket and self.username:
             if any(name.lower() in text.lower() for name in self.nicknames):
                 self.show_notification(f"Mentioned by {username}", text)
-
-    def update_members(self, members):
-        self.members_list.clear()
-        self.members_list.addItems(members)
 
     def append_chat(self, text):
         self.chat_display.append(text)
@@ -314,34 +269,18 @@ class ChatClient(QWidget):
     async def fetch_server_info(self):
         if not self.websocket:
             return
-
         url = self.server_combo.currentText()
-        if not url:
-            self.append_chat("[Client] No server URL available.")
-            return
-
+        parsed = urlparse(url)
+        host = parsed.hostname
+        port = parsed.port or (443 if parsed.scheme == "wss" else 80)
+        http_url = f"http://{host}:{port}/server-info"
         try:
-            parsed = urlparse(url)
-            host = parsed.hostname
-            port = parsed.port
-            if not port:
-                if parsed.scheme == "wss":
-                    port = 443
-                else:
-                    port = 80
-
-            http_url = f"http://{host}:{port}/server-info"
-
             async with aiohttp.ClientSession() as session:
                 async with session.get(http_url) as resp:
-                    if resp.status != 200:
-                        raise Exception(f"HTTP {resp.status}")
                     info = await resp.json()
-
             self.append_chat(f"[Client] Server Name: {info.get('serverName', 'N/A')}")
             self.append_chat(f"[Client] Max Connections: {info.get('totalMaxConnections', 'N/A')}")
             self.append_chat(f"[Client] Current Online: {info.get('currentOnline', 'N/A')}")
-
         except Exception as e:
             self.append_chat(f"[Client] Error fetching server info: {e}")
 
@@ -349,27 +288,19 @@ class ChatClient(QWidget):
         msg = self.msg_input.text().strip()
         if not msg or not self.websocket:
             return
-
         if msg.lower() == "/info":
             asyncio.run_coroutine_threadsafe(self.fetch_server_info(), self.event_loop)
             self.msg_input.clear()
             return
-
         if msg.lower().startswith("/nick "):
             self.pending_nick = msg[6:].strip()
-
-        to_send = {
-            "type": "chat",
-            "content": msg,
-        }
+        payload = {"type": "chat", "content": msg}
         if self.session_token:
-            to_send["token"] = self.session_token
-
-        to_send_json = json.dumps(to_send)
+            payload["token"] = self.session_token
 
         async def send():
             try:
-                await self.websocket.send(to_send_json)
+                await self.websocket.send(json.dumps(payload))
                 self.msg_input.clear()
             except Exception as e:
                 self.append_chat(f"[Error sending message] {e}")
@@ -379,6 +310,9 @@ class ChatClient(QWidget):
     def process_asyncio_events(self):
         self.event_loop.call_soon(self.event_loop.stop)
         self.event_loop.run_forever()
+
+    def on_dnd_changed(self):
+        pass
 
     def show_notification(self, title, message):
         if hasattr(self, "dnd_checkbox") and self.dnd_checkbox.isChecked():
@@ -392,7 +326,6 @@ class ChatClient(QWidget):
         self.disconnect()
         self.event_loop.call_soon_threadsafe(self.event_loop.stop)
         event.accept()
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

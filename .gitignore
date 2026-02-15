@@ -5,4 +5,4 @@ admins.json
 settings.json
 banned.json
 multiplexer/backends.json
-_oldchat.db
+encryption.key
