@@ -63,6 +63,23 @@ All messages are JSON objects:
 
 Send every N seconds (server tells you N). Miss deadline = disconnect.
 
+### Typing Indicator *(optional)*
+
+```json
+{
+  "type": "typing",
+  "token": "<token>"
+}
+```
+
+Signals that you are actively typing. The server broadcasts this to all other clients with your username attached. This is entirely optional — clients that don't send it simply won’t appear in others’ typing indicators, and clients that don’t handle the incoming message can safely ignore it.
+
+**Recommended sending pattern:**
+- Send immediately on the first keypress of a new typing session
+- Re-send every ~5 seconds while the user continues typing
+- Stop sending ~1–2 seconds after the last keypress
+- No “stopped typing” message is needed — recipients should expire the indicator ~6 seconds after the last update received
+
 ### WebRTC Messages
 
 Format:
@@ -131,6 +148,13 @@ Response to your ping.
 * Nickname changes
 * Errors (invalid token, rate limit, etc.)
 
+### Typing Indicator
+```json
+{ "type": "typing", "username": "Alice" }
+```
+
+Broadcast when another client is actively typing. Safe to ignore entirely if your client doesn’t implement typing indicators. Expires naturally, no “stopped typing” event is sent; **treat the user as having stopped 6 seconds after the last `typing` received from them.**
+
 ### WebRTC Messages
 
 See [WEBRTC.md](WEBRTC.md) for complete list.
@@ -168,6 +192,8 @@ CONNECTING → Receive token → Start heartbeat → ACTIVE
 - [ ] Handle `history` messages
 
 **Optional:**
+- [ ] Handle `typing` messages to show who is typing
+- [ ] Send `typing` messages while the user types
 - [ ] WebRTC voice/video
 
 ---
