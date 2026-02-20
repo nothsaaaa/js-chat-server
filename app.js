@@ -20,6 +20,10 @@ const defaultSettings = {
   motd: "Welcome to the chat! Be respectful and have fun.",
   heartbeatInterval: 30000, //client must ping within this interval (30 seconds)
   heartbeatTimeout: 35000, //server disconnects if no ping received within this time (35 seconds)
+  
+  // webrtc is incredibly unfinished and buggy.
+  // i do not recommend anyone to use this, but i am not yet removing it due to its potential use
+  // (and my previous effort to make it work to this point) 
   webrtc: {
     enabled: false, //enable WebRTC
     maxParticipants: 8, //maximum users in voice chat simultaneously
