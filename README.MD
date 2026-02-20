@@ -12,7 +12,7 @@ Possibly the most complete WebSocket chat server available.
 * **Flexible authentication** - Optional usernames, session-based security
 * **Command system** - Extensible modular commands + built-in commands
 * **Chat history** - New clients receive recent message history
-* **WebRTC support** - Built-in voice and video chat (SFU architecture)
+* **Work-In-Progress WebRTC support**
 * **Heartbeat monitoring** - Automatic dead connection detection
 * **Rate limiting** - Protection against spam and abuse
 * **Extensible** - Easy to add custom commands and features
