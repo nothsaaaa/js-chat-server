@@ -15,6 +15,14 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: 'Invalid message format.',
+      }));
+      return;
+    }
+
     if (parsed.type === 'ping') {
       socket.lastHeartbeat = Date.now();
       socket.isAlive = true;
