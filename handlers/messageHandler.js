@@ -27,7 +27,7 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
-    if (parsed.type && parsed.type.startsWith('webrtc-')) {
+    if (typeof parsed.type === 'string' && parsed.type.startsWith('webrtc-')) {
       const sfu = wss.webrtcSFU;
       
       if (!sfu) {
