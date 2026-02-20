@@ -116,9 +116,13 @@ async def recv_loop(ws):
         elif msg_type == "system":
             print(colored(f"[SYSTEM] {data['text']}", "yellow"))
 
-        else:
-            print(colored(f"[Client] Unknown message type: {data}", "red"))
+        #else:
+        #    print(colored(f"[Client] Unknown message type: {data}", "red"))
 
+        # you really don't gotta be notified about this.
+        # it's just annoying when new features are added
+        # if you only need to filter for a few message types
+        # for a client as simple as this.
 
 async def chat_client():
     uri = "ws://localhost:3000"

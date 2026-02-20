@@ -83,6 +83,24 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
+    if (parsed.type === 'typing') {
+      if (socket.username) {
+        wss.clients.forEach((client) => {
+          if (
+            client !== socket &&
+            client.readyState === 1 &&
+            (!settings.authentication || client.authenticated)
+          ) {
+            client.send(JSON.stringify({
+              type: 'typing',
+              username: socket.username,
+            }));
+          }
+        });
+      }
+      return;
+    }
+
     if (parsed.type !== 'chat' || typeof parsed.content !== 'string') {
       socket.send(JSON.stringify({
         type: 'system',
