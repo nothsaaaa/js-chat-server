@@ -24,11 +24,13 @@ console.log('Loading loginLimiter');
 const loginLimiter = require('../utils/loginLimiter');
 
 module.exports = (socket, req, wss) => {
+
   const ip =
     req.headers['x-forwarded-for']?.split(',')[0] ||
     req.socket.remoteAddress;
 
   socket._ip = ip;
+
   const settings = loadSettings();
   const { bannedUsers, adminUsers } = loadBansAndAdmins();
 
@@ -39,8 +41,8 @@ module.exports = (socket, req, wss) => {
 
   socket.blockedUsers = new Set();
 
-  // SESSION TOKEN HOLY SHIT
   socket.sessionToken = crypto.randomBytes(32).toString('hex');
+
   socket.send(JSON.stringify({
     type: 'session-token',
     token: socket.sessionToken,
@@ -48,58 +50,129 @@ module.exports = (socket, req, wss) => {
 
   socket.isAlive = true;
   socket.lastHeartbeat = Date.now();
-  
-  const heartbeatTimeout = settings.heartbeatTimeout || 35000;
+
   const heartbeatInterval = settings.heartbeatInterval || 30000;
-  
+
+  const heartbeatTimeout = settings.heartbeatTimeout || 120000;
+
   socket.send(JSON.stringify({
     type: 'heartbeat-config',
     interval: heartbeatInterval,
     timeout: heartbeatTimeout,
   }));
-  
+
+
   socket.heartbeatTimer = setInterval(() => {
+
     const timeSinceLastBeat = Date.now() - socket.lastHeartbeat;
-    
+
     if (timeSinceLastBeat > heartbeatTimeout) {
+
       console.log(`[HEARTBEAT TIMEOUT] Disconnecting ${socket.username || 'unauthenticated'} - No ping for ${timeSinceLastBeat}ms`);
-      
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: 'Disconnected: Heartbeat timeout (no ping received)',
-      }));
-      
+
+      try {
+        socket.send(JSON.stringify({
+          type: 'system',
+          text: 'Disconnected: Heartbeat timeout (no ping received)',
+        }));
+      } catch {}
+
       socket.close(1008, 'Heartbeat timeout');
+
+    }
+
+  }, 5000);
+
+
+  socket.on('message', (data) => {
+
+    let msg;
+
+    try {
+      msg = JSON.parse(data);
+    } catch {
       return;
     }
-  }, heartbeatInterval);
+
+    if (msg.type === 'ping') {
+
+      socket.lastHeartbeat = Date.now();
+
+      socket.send(JSON.stringify({
+        type: 'pong',
+        timestamp: new Date().toISOString()
+      }));
+
+      return;
+    }
+
+  });
+
 
   if (settings.authentication) {
-    authHandler(socket, req, wss, settings, adminUsers, broadcast, loginLimiter, bannedUsers, connectionLogger, handleCommand);
+
+    authHandler(
+      socket,
+      req,
+      wss,
+      settings,
+      adminUsers,
+      broadcast,
+      loginLimiter,
+      bannedUsers,
+      connectionLogger,
+      handleCommand
+    );
+
   } else {
-    unauthHandler(socket, req, wss, settings, bannedUsers, broadcast, generateUsername, clampUsername, connectionLogger, handleCommand);
+
+    unauthHandler(
+      socket,
+      req,
+      wss,
+      settings,
+      bannedUsers,
+      broadcast,
+      generateUsername,
+      clampUsername,
+      connectionLogger,
+      handleCommand
+    );
+
   }
 
+
   socket.on('close', () => {
+
     if (socket.heartbeatTimer) {
       clearInterval(socket.heartbeatTimer);
     }
-    
+
     if (wss.webrtcSFU) {
       wss.webrtcSFU.handleDisconnect(socket);
     }
-    
+
     if (socket.username) {
+
       connectionLogger('LEAVE', socket.username);
+
       wss.usernames.delete(socket.username);
+
       const leaveText = `${socket.username} has left.`;
+
       broadcast(wss, { type: 'system', text: leaveText }, settings);
+
       const { saveMessage } = require('../utils/db');
+
       saveMessage({ type: 'system', text: leaveText });
+
     }
+
   });
+
 
   socket.on('error', (err) => {
     console.error('WebSocket client error:', err);
   });
+
 };

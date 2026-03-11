@@ -53,6 +53,7 @@ All messages are JSON objects:
 * Rate limited (default: 3 msg/sec)
 
 ### Ping (Heartbeat)
+Browsers may throttle timers when a tab is inactive or in the background. Clients should continue sending pings as scheduled but should not assume exact timing guarantees.
 
 ```json
 {
@@ -107,18 +108,19 @@ See [WEBRTC.md](WEBRTC.md) for details.
 
 ### Heartbeat Config
 ```json
-{ "type": "heartbeat-config", "interval": 30000, "timeout": 35000 }
+{ "type": "heartbeat-config", "interval": 30000, "timeout": 120000 }
 ```
 Ping every `interval` ms or get disconnected after `timeout` ms.
+
+
+---
 
 ### Pong
 ```json
 {
   "type": "pong",
   "timestamp": "2026-02-23T18:42:31.123Z"
-}
-```
-Response to your ping.
+}```
 
 ### Chat History
 ```json
@@ -175,8 +177,8 @@ See [WEBRTC.md](WEBRTC.md) for complete list.
 | Max message length | 2000 chars |
 | Max UTF-8 size | 5KB |
 | Rate limit | ~3 msg/sec (server config) |
-| Heartbeat interval | 30 sec (server tells you) |
-| Heartbeat timeout | 35 sec (server tells you) |
+| Heartbeat interval | ~30 sec (server tells you) |
+| Heartbeat timeout | ~120 sec (server tells you) |
 
 ---
 
