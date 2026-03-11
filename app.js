@@ -1,7 +1,8 @@
 const http = require('http');
+const https = require('https');
 const WebSocket = require('ws');
 const websocketHandler = require('./routes/websocket');
-const serverInfoHandler = require('./utils/serverInfoHandler'); // <-- import here
+const serverInfoHandler = require('./utils/serverInfoHandler');
 const fs = require('fs');
 const path = require('path');
 
@@ -16,10 +17,16 @@ const defaultSettings = {
   maxTotalConnections: 4, //maximum connections per ip
   totalMaxConnections: 20, //maximum users online
   serverName: "My Chat Server",
-  port: 3000,
+  port: 8443, //default port
   motd: "Welcome to the chat! Be respectful and have fun.",
   heartbeatInterval: 30000, //client must ping within this interval (30 seconds)
   heartbeatTimeout: 35000, //server disconnects if no ping received within this time (35 seconds)
+
+  wss: {
+    enabled: false,
+    key: "certs/key.pem",
+    cert: "certs/cert.pem"
+  },
   
   // webrtc is incredibly unfinished and buggy.
   // i do not recommend anyone to use this, but i am not yet removing it due to its potential use
@@ -57,7 +64,35 @@ if (!fs.existsSync(adminsPath)) {
   console.warn(`ANYONE WITH THE USERNAME "ADMIN" HAS FULL CONTROL OF MODERATION COMMANDS!`);
 }
 
-const server = http.createServer();
+/*
+if WSS is enabled, attempt to load TLS certificates
+if WSS disabled, run normal HTTP server
+*/
+
+let server;
+
+if (settings.wss && settings.wss.enabled) {
+  const keyPath = path.join(__dirname, settings.wss.key);
+  const certPath = path.join(__dirname, settings.wss.cert);
+
+  if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+    console.error("WSS is enabled but certificate files were not found.");
+    console.error(`Expected key: ${keyPath}`);
+    console.error(`Expected cert: ${certPath}`);
+    process.exit(1);
+  }
+
+  const httpsOptions = {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath)
+  };
+
+  server = https.createServer(httpsOptions);
+  console.log("Starting server with TLS (WSS enabled)");
+} else {
+  server = http.createServer();
+  console.log("Starting server without TLS (WS)");
+}
 
 const wss = new WebSocket.Server({
   noServer: true,
@@ -94,8 +129,10 @@ wss.on('connection', (socket, req) => {
 });
 
 const PORT = settings.port || 3000;
+
 server.listen(PORT, () => {
-  console.log(`Server running on ws://localhost:${PORT}`);
+  const protocol = (settings.wss && settings.wss.enabled) ? "wss" : "ws";
+  console.log(`Server running on ${protocol}://localhost:${PORT}`);
 });
 
 const shutdown = () => {
