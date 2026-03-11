@@ -125,7 +125,7 @@ async def recv_loop(ws):
         # for a client as simple as this.
 
 async def chat_client():
-    uri = "ws://localhost:3000"
+    uri = "ws://127.0.0.1:3000?username=hellotest"
 
     try:
         async with websockets.connect(uri) as websocket:

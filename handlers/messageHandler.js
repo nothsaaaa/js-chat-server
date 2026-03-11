@@ -5,51 +5,50 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
 
   return (msg) => {
     let parsed;
+
     try {
       parsed = JSON.parse(msg);
     } catch {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: 'Invalid message format.',
-      }));
+      sendSystem(socket, 'Invalid message format.');
       return;
     }
 
-    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: 'Invalid message format.',
-      }));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      sendSystem(socket, 'Invalid message format.');
       return;
     }
+
+    const nowISO = new Date().toISOString();
 
     if (parsed.type === 'ping') {
       socket.lastHeartbeat = Date.now();
       socket.isAlive = true;
-      
-      socket.send(JSON.stringify({ 
+
+      socket.send(JSON.stringify({
         type: 'pong',
-        timestamp: socket.lastHeartbeat,
+        timestamp: nowISO,
       }));
-      
+
       return;
     }
 
     if (typeof parsed.type === 'string' && parsed.type.startsWith('webrtc-')) {
       const sfu = wss.webrtcSFU;
-      
+
       if (!sfu) {
         socket.send(JSON.stringify({
           type: 'webrtc-error',
           error: 'WebRTC not initialized',
+          timestamp: nowISO,
         }));
         return;
       }
 
-      if (typeof parsed.token !== 'string' || parsed.token !== socket.sessionToken) {
+      if (parsed.token !== socket.sessionToken) {
         socket.send(JSON.stringify({
           type: 'webrtc-error',
           error: 'Invalid session token',
+          timestamp: nowISO,
         }));
         return;
       }
@@ -58,108 +57,110 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
         case 'webrtc-join':
           sfu.handleJoinVoice(socket, parsed);
           break;
+
         case 'webrtc-leave':
           sfu.handleLeaveVoice(socket);
           break;
+
         case 'webrtc-offer':
           sfu.handleOffer(socket, parsed);
           break;
+
         case 'webrtc-answer':
           sfu.handleAnswer(socket, parsed);
           break;
+
         case 'webrtc-ice-candidate':
           sfu.handleIceCandidate(socket, parsed);
           break;
+
         case 'webrtc-media-change':
           sfu.handleMediaChange(socket, parsed);
           break;
+
         default:
           socket.send(JSON.stringify({
             type: 'webrtc-error',
             error: 'Unknown WebRTC message type',
+            timestamp: nowISO,
           }));
       }
-      
+
       return;
     }
 
-    if (typeof parsed.token !== 'string' || parsed.token !== socket.sessionToken) {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: 'Invalid session token.',
-      }));
+    if (parsed.token !== socket.sessionToken) {
+      sendSystem(socket, 'Invalid session token.');
       return;
     }
 
     if (parsed.type === 'typing') {
-      if (socket.username) {
-        wss.clients.forEach((client) => {
-          if (
-            client !== socket &&
-            client.readyState === 1 &&
-            (!settings.authentication || client.authenticated)
-          ) {
-            client.send(JSON.stringify({
-              type: 'typing',
-              username: socket.username,
-            }));
-          }
-        });
-      }
+      if (!socket.username) return;
+
+      const typingMsg = JSON.stringify({
+        type: 'typing',
+        username: socket.username,
+        timestamp: nowISO,
+      });
+
+      wss.clients.forEach(client => {
+        if (
+          client !== socket &&
+          client.readyState === 1 &&
+          (!settings.authentication || client.authenticated)
+        ) {
+          client.send(typingMsg);
+        }
+      });
+
       return;
     }
 
     if (parsed.type !== 'chat' || typeof parsed.content !== 'string') {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: 'Invalid message structure.',
-      }));
+      sendSystem(socket, 'Invalid message structure.');
       return;
     }
 
     const now = Date.now();
+
     messageTimestamps.push(now);
+
     while (messageTimestamps.length && now - messageTimestamps[0] > 1000) {
       messageTimestamps.shift();
     }
 
     const rateLimit = settings.maxMessagesPerSecond || 5;
+
     if (messageTimestamps.length > rateLimit) {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: `You are sending messages too fast. Limit is ${rateLimit} per second.`,
-      }));
+      sendSystem(socket, `Rate limit exceeded (${rateLimit}/sec)`);
       return;
     }
 
     let text = parsed.content.trim();
 
     if (text.length > 2000) {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: 'Your message is too long. Max 2000 characters.',
-      }));
+      sendSystem(socket, 'Max length is 2000 characters.');
       return;
     }
 
-    if (Buffer.byteLength(text, 'utf-8') > 5120) {
-      socket.send(JSON.stringify({
-        type: 'system',
-        text: 'Your message is too large. Max 5KB.',
-      }));
+    if (Buffer.byteLength(text, 'utf8') > 5120) {
+      sendSystem(socket, 'Max size is 5KB.');
       return;
     }
 
-    if (handleCommand(text, socket, wss, broadcast, settings, adminUsers)) return;
+    if (handleCommand(text, socket, wss, broadcast, settings, adminUsers)) {
+      return;
+    }
 
     const messageObj = {
       type: 'chat',
       username: socket.username,
       text,
-      timestamp: new Date().toISOString(),
+      timestamp: nowISO,
     };
 
     saveMessage(messageObj);
+
     broadcast(wss, messageObj, settings);
   };
 };

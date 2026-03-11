@@ -113,7 +113,10 @@ Ping every `interval` ms or get disconnected after `timeout` ms.
 
 ### Pong
 ```json
-{ "type": "pong", "timestamp": 1709251234567 }
+{
+  "type": "pong",
+  "timestamp": "2026-02-23T18:42:31.123Z"
+}
 ```
 Response to your ping.
 
@@ -150,7 +153,11 @@ Response to your ping.
 
 ### Typing Indicator
 ```json
-{ "type": "typing", "username": "Alice" }
+{
+  "type": "typing",
+  "username": "Alice",
+  "timestamp": "2026-02-23T18:42:31.123Z"
+}
 ```
 
 Broadcast when another client is actively typing. Safe to ignore entirely if your client doesn’t implement typing indicators. Expires naturally, no “stopped typing” event is sent; **treat the user as having stopped 6 seconds after the last `typing` received from them.**

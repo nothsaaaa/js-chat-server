@@ -17,7 +17,7 @@
 
   const userColors = {};
   const originalTitle = document.title;
-  const serverIP = "localhost:3000";
+  const serverIP = "127.0.0.1:3000";
   let windowFocused = true;
   let newMessagesWhileUnfocused = false;
 
