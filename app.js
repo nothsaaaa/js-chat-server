@@ -19,8 +19,8 @@ const defaultSettings = {
   serverName: "My Chat Server",
   port: 8443, //default port
   motd: "Welcome to the chat! Be respectful and have fun.",
-  heartbeatInterval: 30000, //client must ping within this interval (30 seconds)
-  heartbeatTimeout: 35000, //server disconnects if no ping received within this time (35 seconds)
+  heartbeatInterval: 30000, //client must ping within this interval (seconds)
+  heartbeatTimeout: 120000, //server disconnects if no ping received within this time (seconds)
 
   wss: {
     enabled: false,
