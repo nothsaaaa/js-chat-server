@@ -24,7 +24,11 @@ console.log('Loading loginLimiter');
 const loginLimiter = require('../utils/loginLimiter');
 
 module.exports = (socket, req, wss) => {
-  const ip = req.socket.remoteAddress;
+  const ip =
+    req.headers['x-forwarded-for']?.split(',')[0] ||
+    req.socket.remoteAddress;
+
+  socket._ip = ip;
   const settings = loadSettings();
   const { bannedUsers, adminUsers } = loadBansAndAdmins();
 

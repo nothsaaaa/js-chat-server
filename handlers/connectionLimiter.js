@@ -18,8 +18,14 @@ module.exports = (ip, socket, wss, settings) => {
 
   const timestamps = ipConnectionTimestamps.get(ip) || [];
   const recent = timestamps.filter(ts => now - ts < windowSize);
+
   recent.push(now);
-  ipConnectionTimestamps.set(ip, recent);
+
+  if (recent.length === 0) {
+    ipConnectionTimestamps.delete(ip);
+  } else {
+    ipConnectionTimestamps.set(ip, recent);
+  }
 
   if (recent.length > maxConnectionsPerWindow) {
     socket.send(JSON.stringify({
