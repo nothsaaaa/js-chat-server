@@ -28,12 +28,43 @@ module.exports = (socket, req, wss) => {
   const ip =
     req.headers['x-forwarded-for']?.split(',')[0] ||
     req.socket.remoteAddress;
-
   socket._ip = ip;
 
   const settings = loadSettings();
   const { bannedUsers, adminUsers } = loadBansAndAdmins();
+  const reconnectTracker = new Map();
 
+  // this should be its own module and setting
+  // TODO:
+  function reconnectGuard(ip, socket) {
+
+    const now = Date.now();
+
+    if (!reconnectTracker.has(ip)) {
+      reconnectTracker.set(ip, []);
+    }
+
+    const attempts = reconnectTracker.get(ip);
+
+    while (attempts.length && now - attempts[0] > 120000) {
+      attempts.shift();
+    }
+
+    attempts.push(now);
+
+    if (attempts.length > 3) {
+
+      console.log(`[RECONNECT GUARD] Blocking ${ip}`);
+
+      socket.close(1008, "Reconnect spam - wait 120 seconds.");
+
+      return false;
+    }
+
+    return true;
+  }
+  
+  if (!reconnectGuard(ip, socket)) return;
   if (!connectionLimiter(ip, socket, wss, settings)) return;
 
   if (!wss.usernames) wss.usernames = new Set();
