@@ -9,7 +9,10 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
     try {
       parsed = JSON.parse(msg);
     } catch {
-      sendSystem(socket, 'Invalid message format.');
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: 'Invalid message format.',
+      }));
       return;
     }
 
@@ -132,19 +135,27 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
     const rateLimit = settings.maxMessagesPerSecond || 5;
 
     if (messageTimestamps.length > rateLimit) {
-      sendSystem(socket, `Rate limit exceeded (${rateLimit}/sec)`);
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: `You are sending messages too fast. Limit is ${rateLimit} per second.`,
+      }));
       return;
     }
 
     let text = parsed.content.trim();
 
     if (text.length > 2000) {
-      sendSystem(socket, 'Max length is 2000 characters.');
-      return;
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: 'Your message is too long. Max 2000 characters.',
+      }));      return;
     }
 
     if (Buffer.byteLength(text, 'utf8') > 5120) {
-      sendSystem(socket, 'Max size is 5KB.');
+      socket.send(JSON.stringify({
+        type: 'system',
+        text: 'Your message is too large. Max 5KB.',
+      }));
       return;
     }
 
