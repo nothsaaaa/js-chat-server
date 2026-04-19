@@ -148,7 +148,8 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       socket.send(JSON.stringify({
         type: 'system',
         text: 'Your message is too long. Max 2000 characters.',
-      }));      return;
+      }));
+      return;
     }
 
     if (Buffer.byteLength(text, 'utf8') > 5120) {
@@ -168,9 +169,10 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       username: socket.username,
       text,
       timestamp: nowISO,
+      senderIp: socket._ip,
     };
 
-    saveMessage(messageObj);
+    saveMessage({ type: 'chat', username: socket.username, text, timestamp: nowISO });
 
     broadcast(wss, messageObj, settings);
   };

@@ -1,4 +1,4 @@
-const BLOCK_DURATION_MS = 12 * 60 * 60 * 10;
+const BLOCK_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 module.exports = (wss, data, settings) => {
   settings = settings || {};
@@ -14,17 +14,18 @@ module.exports = (wss, data, settings) => {
       return;
     }
 
-    if (client.blockedUsers && data.username) {
-      const blockedAt = client.blockedUsers[data.username];
+    if (client.blockedUsers && data.senderIp) {
+      const blockedAt = client.blockedUsers[data.senderIp];
       if (blockedAt) {
         if (Date.now() - blockedAt > BLOCK_DURATION_MS) {
-          delete client.blockedUsers[data.username];
+          delete client.blockedUsers[data.senderIp];
         } else {
           return;
         }
       }
     }
 
-    client.send(JSON.stringify(data));
+    const { senderIp, ...outbound } = data;
+    client.send(JSON.stringify(outbound));
   });
 };

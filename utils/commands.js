@@ -57,21 +57,22 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
   }
 
   if (msg === '/list') {
-    const onlineUsers = Array.from(wss.usernames).map(username => {
-      if (socket.blockedUsers && socket.blockedUsers[username]) {
-        const blockedAt = socket.blockedUsers[username];
-        if (Date.now() - blockedAt > BLOCK_DURATION_MS) {
-          delete socket.blockedUsers[username];
-          return username;
+    const now = Date.now();
+    const onlineUsers = Array.from(wss.clients)
+      .filter(c => c.username)
+      .map(c => {
+        if (socket.blockedUsers && c._ip && socket.blockedUsers[c._ip]) {
+          if (now - socket.blockedUsers[c._ip] > BLOCK_DURATION_MS) {
+            delete socket.blockedUsers[c._ip];
+            return c.username;
+          }
+          return `[B]${c.username}`;
         }
-        return `[B]${username}`;
-      }
-      return username;
-    });
+        return c.username;
+      });
     socket.send(JSON.stringify({ type: 'system', text: `Online users: ${onlineUsers.join(', ')}` }));
     return true;
   }
-
 
   if (msg.startsWith('/kick')) {
     if (!isAuth || !socket.isAdmin) {
@@ -200,39 +201,50 @@ const handleCommand = (msg, socket, wss, broadcast, settings, adminUsers) => {
   }
 
   if (msg.startsWith('/block')) {
-    const targetRaw = msg.slice(6).trim();
+    const targetRaw = msg.slice(6).trim().toLowerCase();
     if (!targetRaw) {
       socket.send(JSON.stringify({ type: 'system', text: 'Usage: /block <username>' }));
       return true;
     }
 
-    const target = clampUsername(targetRaw);
-    if (target === socket.username) {
+    if (targetRaw === socket.username?.toLowerCase()) {
       socket.send(JSON.stringify({ type: 'system', text: 'You cannot block yourself.' }));
       return true;
     }
 
+    const targetSocket = Array.from(wss.clients).find(
+      c => c.username?.toLowerCase() === targetRaw
+    );
+
+    if (!targetSocket?._ip) {
+      socket.send(JSON.stringify({ type: 'system', text: `User "${targetRaw}" not found.` }));
+      return true;
+    }
+
     if (!socket.blockedUsers) socket.blockedUsers = {};
-    socket.blockedUsers[target] = Date.now();
-    socket.send(JSON.stringify({ type: 'system', text: `You have blocked ${target} for 12 hours.` }));
+    socket.blockedUsers[targetSocket._ip] = Date.now();
+    socket.send(JSON.stringify({ type: 'system', text: `You have blocked ${targetSocket.username} for 12 hours.` }));
     return true;
   }
 
   if (msg.startsWith('/unblock')) {
-    const targetRaw = msg.slice(8).trim();
+    const targetRaw = msg.slice(8).trim().toLowerCase();
     if (!targetRaw) {
       socket.send(JSON.stringify({ type: 'system', text: 'Usage: /unblock <username>' }));
       return true;
     }
 
-    const target = clampUsername(targetRaw);
-    if (socket.blockedUsers && socket.blockedUsers[target]) {
-      delete socket.blockedUsers[target];
-      socket.send(JSON.stringify({ type: 'system', text: `You have unblocked ${target}.` }));
-    } else {
-      socket.send(JSON.stringify({ type: 'system', text: `${target} was not blocked.` }));
+    const targetSocket = Array.from(wss.clients).find(
+      c => c.username?.toLowerCase() === targetRaw
+    );
+
+    if (!targetSocket?._ip || !socket.blockedUsers?.[targetSocket._ip]) {
+      socket.send(JSON.stringify({ type: 'system', text: `${targetRaw} was not blocked.` }));
+      return true;
     }
 
+    delete socket.blockedUsers[targetSocket._ip];
+    socket.send(JSON.stringify({ type: 'system', text: `You have unblocked ${targetSocket.username}.` }));
     return true;
   }
 
