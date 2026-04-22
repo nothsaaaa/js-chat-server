@@ -18,6 +18,8 @@ console.log('Loading generateUsername');
 const generateUsername = require('../utils/generateUsername');
 console.log('Loading connectionLogger');
 const connectionLogger = require('../middleware/connectionLogger');
+console.log('Loading churnGuard');
+const churnGuard = require('../middleware/churnGuard');
 console.log('Loading commands');
 const handleCommand = require('../utils/commands');
 console.log('Loading loginLimiter');
@@ -63,8 +65,9 @@ module.exports = (socket, req, wss) => {
 
     return true;
   }
-  
+    
   if (!reconnectGuard(ip, socket)) return;
+  if (!churnGuard.onConnect(ip, socket, settings)) return;
   if (!connectionLimiter(ip, socket, wss, settings)) return;
 
   if (!wss.usernames) wss.usernames = new Set();
@@ -174,7 +177,7 @@ module.exports = (socket, req, wss) => {
 
 
   socket.on('close', () => {
-
+    churnGuard.onDisconnect(ip, settings);
     if (socket.heartbeatTimer) {
       clearInterval(socket.heartbeatTimer);
     }

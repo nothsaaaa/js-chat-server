@@ -38,6 +38,12 @@ const defaultSettings = {
     allowScreenShare: false, //allow screen sharing
     forceRelay: true, //force all traffic through TURN; prevents ip leaks to other callers
   },
+  churnGuard: {
+    enabled: true,
+    windowMs: 300000,
+    maxCycles: 5,
+    blockDurationMs: 600000,
+  }
 };
 
 // it should be duly noted i do not know how to properly use webrtc
