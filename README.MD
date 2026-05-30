@@ -44,8 +44,8 @@ For client examples, see [docs/EXAMPLES.md](docs/EXAMPLES.md).
 
 ### For Server Administrators
 
-* **Server Configuration** - _(Coming soon)_
-* **Deployment Guide** - _(Coming soon)_
+* **Server Configuration** - _(Coming 2037)_
+* **Deployment Guide** - _(Coming 2037)_
 
 ### Additional Resources
 
