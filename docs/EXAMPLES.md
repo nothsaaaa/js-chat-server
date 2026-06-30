@@ -4,17 +4,6 @@ Reference implementations demonstrating different approaches and features.
 
 ---
 
-## Overview
-
-The `examples/clients/` directory contains working client implementations showcasing various features and programming approaches. Use these as:
-
-* **Learning resources** - See how features are implemented
-* **Starting templates** - Fork and customize for your needs
-
----
-
-## Common Patterns
-
 ### Connection Management
 
 All examples follow this pattern:
@@ -39,23 +28,5 @@ setInterval(() => {
 // 4. Handle messages
 // 5. Send messages with token
 ```
-
----
-
-## Troubleshooting
-
-### Example Won't Connect
-
-1. Is server running? `netstat -an | grep 3000`
-2. Correct URL? Check `ws://` vs `wss://`
-3. CORS issues?
-4. Check browser console for errors
-
----
-
-## Further Reading
-
-* **[Quickstart Guide](QUICKSTART.md)**
-* **[Protocol Specification](PROTOCOL.md)**
 * **[Commands Reference](COMMANDS.md)**
 * **[WebRTC Guide](WEBRTC.md)**

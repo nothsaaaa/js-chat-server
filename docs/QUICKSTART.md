@@ -4,7 +4,7 @@
 
 ### 1. Connection Flow
 ```
-Connect → Receive token → Start heartbeat → Receive history → Chat!
+Connect -> Receive token -> Start heartbeat -> Receive history -> Chat
 ```
 
 ### 2. Required Implementation
@@ -30,18 +30,9 @@ ws.onmessage = (e) => {
 
 ---
 
-## Try Commands
-
-* `/help` - List commands
-* `/nick NewName` - Change username
-* `/list` - See who's online
-
-See [COMMANDS.md](COMMANDS.md) for more.
-
----
-
 ## Next Steps
 
 * **[PROTOCOL.md](PROTOCOL.md)**
 * **[WEBRTC.md](WEBRTC.md)**
 * **[EXAMPLES.md](EXAMPLES.md)**
+* **[COMMANDS.md](COMMANDS.md)**
