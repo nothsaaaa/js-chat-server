@@ -17,7 +17,7 @@
 
   const userColors = {};
   const originalTitle = document.title;
-  const serverIP = "127.0.0.1:3000";
+  const serverIP = "blackspace.lol:8443";
   let windowFocused = true;
   let newMessagesWhileUnfocused = false;
 
@@ -224,9 +224,9 @@
     const username = usernameInput.value.trim();
 
     const serverUrl = username
-      ? `ws://${serverIP}?username=${encodeURIComponent(username)}`
-      : `ws://${serverIP}`;
-
+      ? `wss://${serverIP}?username=${encodeURIComponent(username)}`
+      : `wss://${serverIP}`;
+      // or ws://
     ws = new WebSocket(serverUrl);
 
     ws.onopen = () => {

@@ -125,7 +125,8 @@ async def recv_loop(ws):
         # for a client as simple as this.
 
 async def chat_client():
-    uri = "ws://127.0.0.1:3000?username=hellotest"
+    # uri = "wss://blackspace.lol:8443?username=hellotest"
+    uri = "wss://blackspace.lol:8443"
 
     try:
         async with websockets.connect(uri) as websocket:

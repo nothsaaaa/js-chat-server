@@ -19,7 +19,7 @@ class ChatClient(QWidget):
         self.setWindowTitle("Chat Client")
         self.servers = self.load_servers()
         if not self.servers:
-            self.servers = ["ws://localhost:3000"]
+            self.servers = ["wss://blackspace.lol:8443"]
         self.server_combo.addItems(self.servers)
         self.websocket = None
         self.keep_running = False
