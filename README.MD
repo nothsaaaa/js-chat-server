@@ -15,7 +15,7 @@ Possibly the most complete WebSocket chat server available.
 * **Work-In-Progress WebRTC support**
 * **Heartbeat monitoring** - Automatic dead connection detection
 * **Rate limiting** - Protection against spam and abuse
-* **Extensible** - Easy to add custom commands and features
+* **Timezone support** - IANA timezone-aware timestamps for all messages (default: `'UTC'`)
 
 ---
 
@@ -27,7 +27,7 @@ npm install
 npm start
 ```
 
-Server runs on `ws://localhost:3000` by default.
+Server runs on `ws://localhost:8443` by default.
 
 For client examples, see [docs/EXAMPLES.md](docs/EXAMPLES.md).
 
@@ -56,6 +56,18 @@ For client examples, see [docs/EXAMPLES.md](docs/EXAMPLES.md).
 **Client:**
 * WebSocket support (all modern browsers)
 * WebRTC support (optional, for voice/video)
+
+---
+
+## Client Timestamp Guidelines
+
+All messages include an ISO 8601 timestamp with a timezone offset (e.g. `2027-08-30T15:30:00+02:00`). To display these correctly in the user's local time, clients should:
+
+1. Fetch the server's configured timezone from `GET /server-info` (returns `{ configured, actual }`)
+2. Use that timezone when formatting received timestamps with `Intl.DateTimeFormat()`
+3. Fall back to UTC if the `/server-info` call fails or no timezone is available
+
+The example clients in this repo (`examples/client/js-web/`, `examples/client/minimal-example.js`) demonstrate both patterns.
 
 ---
 

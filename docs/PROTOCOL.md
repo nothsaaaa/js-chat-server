@@ -36,6 +36,17 @@ All messages are JSON objects:
 
 ---
 
+## Timezone Support
+
+The server's `timezone` setting controls how timestamps are formatted in all messages. By default it is `'UTC'`, but you can set any IANA timezone name (e.g., `"America/New_York"`, `"Asia/Tokyo"`). On the `/server-info` endpoint, clients receive both:
+
+* **`configured`** - the server's configured timezone
+* **`actual`** - the system locale timezone (for display reference)
+
+**Client guidance:** Fetch the server's `timezone` from `/server-info` and use it to format all received timestamps. The examples in this repo show how to do that with `Intl.DateTimeFormat`. If you don't fetch the timezone, messages will still be valid — they simply include a fixed offset instead of the local time zone.
+
+---
+
 ## Client → Server
 
 ### Chat Message
@@ -119,16 +130,17 @@ Ping every `interval` ms or get disconnected after `timeout` ms.
 ```json
 {
   "type": "pong",
-  "timestamp": "2026-02-23T18:42:31.123Z"
-}```
+  "timestamp": "2027-08-30T15:30:00+02:00"
+}
+```
 
 ### Chat History
 ```json
 {
   "type": "history",
   "messages": [
-    { "type": "chat", "username": "Alice", "text": "Hi!", "timestamp": "2025-..." },
-    { "type": "system", "username": null, "text": "Bob joined", "timestamp": "2025-..." }
+    { "type": "chat", "username": "Alice", "text": "Hi!", "timestamp": "2027-08-30T15:30:00+02:00" },
+    { "type": "system", "username": null, "text": "Bob joined", "timestamp": "2027-08-30T15:30:00+02:00" }
   ]
 }
 ```
@@ -139,7 +151,7 @@ Ping every `interval` ms or get disconnected after `timeout` ms.
   "type": "chat",
   "username": "Alice",
   "text": "Hello!",
-  "timestamp": "2025-05-28T15:05:00.000Z"
+  "timestamp": "2027-08-30T15:30:00+02:00"
 }
 ```
 
@@ -158,7 +170,7 @@ Ping every `interval` ms or get disconnected after `timeout` ms.
 {
   "type": "typing",
   "username": "Alice",
-  "timestamp": "2026-02-23T18:42:31.123Z"
+  "timestamp": "2027-08-30T15:30:00+02:00"
 }
 ```
 
