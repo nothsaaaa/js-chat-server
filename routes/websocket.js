@@ -2,6 +2,8 @@ const crypto = require('crypto');
 
 console.log('Loading loadSettings');
 const loadSettings = require('../handlers/loadSettings');
+console.log('Loading formatISOWithOffset');
+const { formatISOWithOffset } = require('../utils/timestamps');
 console.log('Loading loadBansAndAdmins');
 const loadBansAndAdmins = require('../handlers/loadBansAndAdmins');
 console.log('Loading connectionLimiter');
@@ -134,7 +136,7 @@ module.exports = (socket, req, wss) => {
 
       socket.send(JSON.stringify({
         type: 'pong',
-        timestamp: new Date().toISOString()
+        timestamp: formatISOWithOffset(new Date())
       }));
 
       return;

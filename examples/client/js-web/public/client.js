@@ -15,11 +15,38 @@
     timeout: 35000
   };
 
+  // Timezone configuration for the client.
+  // Defaults to whatever the server reports on /server-info so timestamps
+  // always display correctly in the user's local time.
+  let localTimezone = 'system'; // will be overridden by server info when available
+
   const userColors = {};
   const originalTitle = document.title;
   const serverIP = "blackspace.lol:8443";
   let windowFocused = true;
   let newMessagesWhileUnfocused = false;
+
+  function formatLocalTime(isoString) {
+    // If the ISO string already includes a timezone offset (e.g. "-04:00"),
+    // parse it back to UTC so we can convert using Intl.
+    const utcIso = isoString.includes('+') || isoString.includes('-') && !isoString.endsWith('Z')
+      ? isoString.replace(/([+-]\d{2}):(\d{2})$/, '$1.$2:00').replace(/\.\d+/, '') + ':00.000'
+      : isoString;
+
+    const d = new Date(utcIso);
+    if (isNaN(d.getTime())) return isoString;
+
+    try {
+      // Intl.DateTimeFormat handles IANA timezone names and falls back to system locale
+      const opts = localTimezone === 'system' || localTimezone === undefined
+        ? {} : { timeZone: localTimezone };
+      return new Date(d.toISOString()).toLocaleString('en-US', opts);
+    } catch {
+      // Fallback: display UTC
+      return d.toUTCString();
+    }
+    // And fuck this timezone shit
+  }
 
   async function fetchServerInfo() {
     try {
@@ -27,6 +54,11 @@
       if (!res.ok) throw new Error('Failed to fetch server info');
 
       const info = await res.json();
+
+      // use the server's configured timezone so all timestamps display correctly locally.
+      if (info.timezone && info.timezone.configured) {
+        localTimezone = info.timezone.configured;
+      }
 
       // Basic info
       if (info.serverName)

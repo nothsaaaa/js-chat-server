@@ -1,3 +1,4 @@
+const { formatISOWithOffset } = require('../utils/timestamps');
 const { saveMessage } = require('../utils/db');
 
 module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) => {
@@ -21,7 +22,7 @@ module.exports = (socket, wss, broadcast, settings, adminUsers, handleCommand) =
       return;
     }
 
-    const nowISO = new Date().toISOString();
+    const nowISO = formatISOWithOffset(new Date());
 
     if (parsed.type === 'ping') {
       socket.lastHeartbeat = Date.now();

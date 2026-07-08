@@ -43,6 +43,11 @@ module.exports = (req, res, wss, settings) => {
         wss.webrtcSFU && typeof wss.webrtcSFU.getParticipantCount === 'function'
           ? wss.webrtcSFU.getParticipantCount()
           : 0,
+    },
+
+    timezone: {
+      configured: settings.timezone || 'UTC',
+      actual: Intl.DateTimeFormat().resolvedOptions().timeZone || 'system',
     }
   };
 

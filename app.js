@@ -19,6 +19,8 @@ const defaultSettings = {
   serverName: "My Chat Server",
   port: 8443, //default port
   motd: "Welcome to the chat! Be respectful and have fun.",
+  timezone: 'UTC', //IANA timezone used for all message timestamps; e.g. "America/New_York" or "America/Chicago" or "UTC" or "system"
+
   heartbeatInterval: 30000, //client must ping within this interval (seconds)
   heartbeatTimeout: 120000, //server disconnects if no ping received within this time (seconds)
 
